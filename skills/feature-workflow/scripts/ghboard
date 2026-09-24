@@ -144,7 +144,11 @@ cmd_validate() {
 
   ok "repo:  $REPO"
   ok "board: $OWNER/$NUMBER"
-  printf '  live %s options: %s\n' "$STATUS_FIELD" "$(paste -sd', ' <<<"$live")"
+  # BSD paste (macOS) needs a file operand and errors on a bare -sd; tr is
+  # portable. This line is the diagnostic when validation fails, so it must
+  # not itself be broken.
+  printf '  live %s options: %s\n' "$STATUS_FIELD" \
+    "$(tr '\n' '|' <<<"$live" | sed 's/|$//; s/|/, /g')"
 
   while IFS=$'\t' read -r phase column; do
     if grep -Fxq "$column" <<<"$live"; then
@@ -311,6 +315,9 @@ cmd_comments() {
 
   case "$mode" in
     --after-commit)
+      # %cI is the committer date with a local UTC offset (+01:00); GitHub
+      # returns Zulu. Comparing those two as strings is wrong in both
+      # directions, so normalise to an epoch and compare numbers.
       cutoff="$(git log -1 --format=%cI 2>/dev/null || true)"
       [[ -n "$cutoff" ]] || die "no commits on this branch to compare against"
       ;;
@@ -322,13 +329,27 @@ cmd_comments() {
     *)  die "unknown option '$mode'. Use --after-commit or --since <iso8601>" ;;
   esac
 
+  local cutoff_epoch=0
+  if [[ -n "$cutoff" ]]; then
+    # BSD date (macOS) and GNU date disagree on parsing; try both. A date
+    # this cannot parse must fail loudly, or the filter silently passes
+    # everything and "nothing new" becomes a lie.
+    # Normalise to a form BSD %z accepts: Z -> +0000, and +01:00 -> +0100.
+    local norm="${cutoff/Z/+0000}"
+    norm="$(sed -E 's/([+-][0-9]{2}):([0-9]{2})$/\1\2/' <<<"$norm")"
+    cutoff_epoch="$(date -j -f '%Y-%m-%dT%H:%M:%S%z' "$norm" +%s 2>/dev/null \
+                    || date -d "$cutoff" +%s 2>/dev/null || echo 0)"
+    (( cutoff_epoch > 0 )) || die "could not parse timestamp '$cutoff'"
+  fi
+
   json="$(gh issue view "$issue" --repo "$REPO" --json comments,title,url)" \
     || die "could not read issue #$issue"
 
   local filtered
-  filtered="$(jq --arg cut "$cutoff" '
+  filtered="$(jq --argjson cut "$cutoff_epoch" '
     [ .comments[]
-      | select($cut == "" or (.createdAt > $cut)) ]' <<<"$json")"
+      | select($cut == 0
+               or ((.createdAt | fromdateiso8601) > $cut)) ]' <<<"$json")"
 
   count="$(jq 'length' <<<"$filtered")"
 
@@ -360,6 +381,14 @@ cmd_status() {
 
 cmd_add() {
   local issue="$1"
+
+  # Adding twice is harmless on GitHub's side but produces a confusing
+  # "was not on the board; adding it" on the very next command, so check.
+  if [[ -n "$(item_id_for_issue "$issue")" ]]; then
+    ok "#$issue is already on the board"
+    return
+  fi
+
   gh project item-add "$NUMBER" --owner "$OWNER" \
     --url "https://github.com/$REPO/issues/$issue" >/dev/null
   ITEMS_CACHE=""
