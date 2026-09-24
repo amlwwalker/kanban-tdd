@@ -87,6 +87,16 @@ story needs interrogating, `tdd-discipline` when the first test is about to be
 written. Asking about four toolchains before the user has described their
 feature is how a workflow becomes a survey.
 
+**When a capability is on a fallback rather than its preferred provider, run
+`ghboard capabilities` and show the output** rather than describing the gap in
+your own words. It prints what is covering each job and what the preferred
+provider would add. Do this the first time in a session that a fallback is
+used — once, not per ticket — and then carry on without waiting for a reply.
+
+The command exists because prose cannot reliably make this happen: a model
+answering a user's question will skip a provenance announcement every time.
+Printing it as command output is deterministic; remembering to say it is not.
+
 ## The ticket is the record, not the chat
 
 Whenever you act on an existing ticket, read it first — **body and comments**:

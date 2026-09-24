@@ -92,17 +92,47 @@ why: the configured command is what CI runs, and a raw invocation is how local
 and CI drift apart. Ask for `ciCommand` if the project has a single CI entry
 point.
 
-**Capabilities.** For each of `design-interview`, `tdd-discipline`,
-`ticket-slicing`, `code-review`: if a provider is already installed, record it
-and say so in half a sentence. If none is, leave `"auto"` — the consuming skill
-will ask when it first needs it, which is a better moment than now.
+**Capabilities.** This is the one moment where the whole picture is worth
+showing, because it is the only time the user is thinking about setup rather
+than about their feature. Later prompts have to be brief; this one does not.
 
-Mention once, without pressing:
+Resolve each of `design-interview`, `tdd-discipline`, `ticket-slicing` and
+`code-review` against what is actually installed, then **show a table** — what
+each capability does, what is covering it now, and what the preferred provider
+would add:
 
-> These skills delegate the thinking — design interviews, TDD discipline, code
-> review — to whatever you already use. Matt Pocock's skills
-> (`claude plugins install mattpocock-skills`) cover all four and are what this
-> was built against; superpowers covers two. Neither is required.
+> **Capabilities.** This plugin owns the board and the red→green evidence. The
+> thinking is delegated to skills you install separately — here is what I found:
+>
+> | Job | Covered by | Best available |
+> |---|---|---|
+> | Design interview | `superpowers:brainstorming` ✓ | `grilling` — also writes ADRs and a glossary |
+> | TDD discipline | `superpowers:test-driven-development` ✓ | `tdd` — seams, anti-patterns, vertical slices |
+> | Ticket slicing | *nothing* — built-in fallback | `to-tickets` — tracer bullets with blocking edges |
+> | Code review | `/code-review` ✓ | `code-review` — standards and spec, in parallel |
+>
+> The preferred column is all from **Matt Pocock's skills**, which this plugin
+> was built against:
+>
+> ```
+> claude plugins install mattpocock-skills
+> ```
+>
+> **Nothing here is required** and nothing is blocked without it — the built-in
+> fallbacks work, they are just thinner. Install it now and I will record the
+> stronger providers; otherwise I will record what you have and you can rerun
+> `/board-setup` any time to upgrade.
+
+Adapt the table to what is genuinely installed. A row where the preferred
+provider **is** present says so and needs no suggestion.
+
+Then record what resolved. Leave `"auto"` only where nothing was found and the
+user did not choose — the consuming skill will ask at the moment it first
+needs it, which is a better moment to decide than now.
+
+If the user installs mid-session, say plainly that new skills may not be
+visible until the session restarts, and offer to record the intended provider
+anyway so the config is right on restart.
 
 For `ui-style` there is no default. Ask whether they have a house design skill;
 if not, omit the key entirely rather than writing a placeholder.
@@ -184,16 +214,37 @@ Every skill writes `ghboard <command>` as a bare name, and the real script
 lives inside the plugin where nothing can find it. Write a one-line shim into
 the repo so the bare name resolves for both Claude and the human:
 
+Try each plausible location rather than hardcoding one. `CLAUDE_PLUGIN_ROOT`
+is set when a skill invokes the shim but **not** when a human runs it from
+their own shell, and the install path differs between a marketplace install
+and a local `--plugin-dir` checkout. A shim that guesses one path and `exec`s
+it blindly fails later with a confusing error that looks like a board problem.
+
 ```bash
 mkdir -p .claude/bin
 cat > .claude/bin/ghboard <<'SHIM'
 #!/usr/bin/env bash
 # Shim: the real script ships inside the kanban-tdd plugin. Regenerate with
 # /board-setup if the plugin moves.
-exec "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/cache/amlwwalker/kanban-tdd}/skills/feature-workflow/scripts/ghboard" "$@"
+for root in \
+  "${CLAUDE_PLUGIN_ROOT:-}" \
+  "$HOME/.claude/plugins/cache/amlwwalker/kanban-tdd" \
+  "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/../kanban-tdd"
+do
+  [ -n "$root" ] || continue
+  if [ -x "$root/skills/feature-workflow/scripts/ghboard" ]; then
+    exec "$root/skills/feature-workflow/scripts/ghboard" "$@"
+  fi
+done
+echo "ghboard: cannot find the kanban-tdd plugin. Rerun /board-setup." >&2
+exit 127
 SHIM
 chmod +x .claude/bin/ghboard
 ```
+
+Add any other root you actually found during exploration. The last entry
+covers a sibling checkout, which is how the plugin looks when run with
+`--plugin-dir` rather than installed.
 
 Check it resolves, and say plainly if it does not — a shim pointing at a
 missing file is worse than no shim, because the failure appears later and

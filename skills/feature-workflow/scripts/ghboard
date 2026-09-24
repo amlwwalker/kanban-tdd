@@ -11,6 +11,7 @@
 #   ghboard comments <issue>       just the comments
 #     ... --after-commit           only those newer than your last commit
 #     ... --since <iso8601>        only those after a given time
+#   ghboard capabilities           which skills cover the delegated jobs
 #   ghboard status <issue>         which column is it in?
 #   ghboard add <issue>            put an issue on the board
 #   ghboard move <issue> <phase>   move a card
@@ -30,7 +31,7 @@ warn() { printf '  \033[33m!\033[0m %s\n' "$1"; }
 head_() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 
 usage() {
-  sed -n '3,22p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '3,23p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 # Printed before the dependency checks, so a fresh machine still learns what
@@ -372,6 +373,57 @@ cmd_comments() {
   jq -r '.[] | "\n--- \(.author.login) · \(.createdAt) ---\n\(.body)"' <<<"$filtered"
 }
 
+# What is covering each delegated job, and what would be better.
+#
+# Prose in a skill cannot reliably make a model announce which provider it is
+# using — it prioritises answering the user over reciting provenance. So the
+# gap is reported as data instead: run this and the answer is on screen,
+# whether or not anyone remembered to mention it.
+cmd_capabilities() {
+  head_ "Capabilities"
+
+  local any_gap=0
+  while IFS=$'\t' read -r cap preferred label; do
+    local provider
+    provider="$(jq -r --arg c "$cap" \
+      '.capabilities[$c].provider // "auto"' "$CONFIG")"
+
+    case "$provider" in
+      "$preferred")
+        ok "$(printf '%-18s %s' "$cap" "$provider")"
+        ;;
+      auto)
+        warn "$(printf '%-18s %s' "$cap" "unresolved — will be asked on first use")"
+        any_gap=1
+        ;;
+      builtin)
+        warn "$(printf '%-18s %s' "$cap" "built-in fallback (thinner)")"
+        printf '       \033[2m↑ %s — %s\033[0m\n' "$preferred" "$label"
+        any_gap=1
+        ;;
+      *)
+        warn "$(printf '%-18s %s' "$cap" "$provider")"
+        printf '       \033[2m↑ %s — %s\033[0m\n' "$preferred" "$label"
+        any_gap=1
+        ;;
+    esac
+  done <<'CAPS'
+design-interview	grilling	also writes ADRs and a glossary as it interviews
+tdd-discipline	tdd	deeper on seams, anti-patterns and vertical slices
+ticket-slicing	to-tickets	tracer-bullet slices with blocking edges
+code-review	code-review	standards and spec reviewed in parallel
+CAPS
+
+  if (( any_gap == 1 )); then
+    printf '\n  The ↑ lines are all from Matt Pocock'"'"'s skills, which this\n'
+    printf '  plugin was built against. Nothing is blocked without them:\n\n'
+    printf '    \033[36mclaude plugins install mattpocock-skills\033[0m\n\n'
+    printf '  Then rerun \033[36m/board-setup\033[0m to record the upgrade.\n'
+  else
+    printf '\n  \033[2mEvery job has its preferred provider.\033[0m\n'
+  fi
+}
+
 cmd_status() {
   local issue="$1" found
   found="$(rows | awk -F'\t' -v n="$issue" '$2 == n {print $3}' | head -1)"
@@ -430,6 +482,7 @@ case "${1:-}" in
   read)     [[ $# -eq 2 ]] || die "usage: ghboard read <issue>";          cmd_read "$2" ;;
   comments) [[ $# -ge 2 ]] || die "usage: ghboard comments <issue> [--after-commit|--since <iso8601>]";
             cmd_comments "$2" "${3:-}" "${4:-}" ;;
+  capabilities|caps) cmd_capabilities ;;
   status)   [[ $# -eq 2 ]] || die "usage: ghboard status <issue>";        cmd_status "$2" ;;
   add)      [[ $# -eq 2 ]] || die "usage: ghboard add <issue>";           cmd_add "$2" ;;
   move)     [[ $# -eq 3 ]] || die "usage: ghboard move <issue> <phase>";  cmd_move "$2" "$3" ;;

@@ -437,8 +437,43 @@ whatever you already use:
 | `ui-style` | yours, named in config | — | skipped silently |
 
 **Nothing is required.** With none of it installed you still get a working
-workflow — the interview is just shorter. Resolution is: config → detect →
-ask once → record the answer, so it never nags twice.
+workflow — the interview is just shorter.
+
+### Seeing what you are missing
+
+`/board-setup` shows the whole picture once, as a table. After that, ask any
+time:
+
+```
+ghboard capabilities
+```
+
+```
+Capabilities
+  ! design-interview   superpowers:brainstorming
+       ↑ grilling — also writes ADRs and a glossary as it interviews
+  ! tdd-discipline     superpowers:test-driven-development
+       ↑ tdd — deeper on seams, anti-patterns and vertical slices
+  ! ticket-slicing     built-in fallback (thinner)
+       ↑ to-tickets — tracer-bullet slices with blocking edges
+
+  The ↑ lines are all from Matt Pocock's skills, which this
+  plugin was built against. Nothing is blocked without them:
+
+    claude plugins install mattpocock-skills
+```
+
+It is a command rather than something Claude announces, and that is
+deliberate: in testing, a model asked to open every interview with "I am using
+the fallback provider" skipped it every time — answering your actual question
+wins over reciting provenance. Printing it is reliable; remembering to say it
+is not.
+
+If *nothing* is installed for a capability you still get a proper choice —
+install either option, or carry on built-in — asked once and recorded.
+
+Resolution is: config → detect → ask once → record. It never nags twice, and
+rerunning `/board-setup` after installing something upgrades the config.
 
 The preferred providers are [Matt Pocock's
 skills](https://github.com/mattpocock/skills), which this was built against:
@@ -492,6 +527,7 @@ ghboard next                            what to pick up
 ghboard stale [days]                    backlog cards that are old or thin
 ghboard read <issue>                    body AND comments
 ghboard comments <issue> --after-commit  what landed since your last commit
+ghboard capabilities                    what covers each delegated job
 ghboard status <issue>                  which column
 ghboard add|move <issue> [phase]
 ```

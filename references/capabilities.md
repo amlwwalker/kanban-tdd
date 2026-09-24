@@ -40,8 +40,27 @@ Read `capabilities.<name>.provider` from `.claude/workflow.config.json`.
 ### 2. Detect
 
 Look for the preferred provider in your available skills, then the fallback.
-Found one → use it, and tell the user which in half a sentence: "Using
-`grilling` for the design interview." Then continue to step 4.
+
+**Found the preferred one** → use it. Say which, in half a sentence: "Using
+`grilling` for the design interview." Continue to step 4.
+
+**Found only the fallback** → use it, and **say that the preferred provider is
+missing and what it would add**. One sentence, once, not a sales pitch:
+
+> Using `superpowers:brainstorming` for the design interview.
+> `mattpocock-skills:grilling` is the stronger option here — it produces ADRs
+> and a glossary as it interviews — but superpowers covers this fine.
+> `claude plugins install mattpocock-skills` if you want it.
+
+Then continue to step 4 and record the fallback. Do **not** stop and wait for
+an answer: a working fallback is not a blocker, and interrupting real work to
+upsell a plugin is worse than the gap it fills.
+
+Saying nothing is the failure mode to avoid. A user who silently gets the
+weaker provider never learns there is a better one, and never learns why their
+interview feels thinner than the documentation describes.
+
+**Found neither** → step 3.
 
 Do not shell out to hunt for skill directories. You either have the skill
 available or you do not.

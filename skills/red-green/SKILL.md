@@ -21,6 +21,18 @@ at the plugin root and call that provider. It is a reference to consult, not a
 session that takes over: when it finishes you are still here, and the card has
 not moved.
 
+**Say which provider you are using, once, before the first test** — and if it
+is the fallback, say what the preferred one would add:
+
+- Preferred (`tdd`) → "Using `tdd` for test discipline."
+- Fallback (`superpowers:test-driven-development`) → "Using
+  `superpowers:test-driven-development`. `mattpocock-skills:tdd` goes deeper
+  on seams and anti-patterns — `claude plugins install mattpocock-skills` —
+  but this covers the loop."
+- Neither → use the built-in rules at the bottom and say so.
+
+Then start. Do not wait for a reply about installing anything.
+
 If nothing is installed, the built-in section at the bottom is enough to work
 with, and noticeably thinner.
 
