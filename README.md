@@ -216,8 +216,53 @@ Two deliberate choices worth knowing:
 
 **Commit `.claude/workflow.config.json`.** It is how a colleague who clones
 the repo gets the same board, branches and test commands without setting
-anything up. One board can serve several repos — each repo just records the
-same `owner` and `number`.
+anything up.
+
+### One board, several repos
+
+This is a first-class case, not a workaround. A board that tracks work across
+a whole team is exactly what the split above is for: **the board is named in
+config, the repo is discovered from git.**
+
+Point every repo at the same board by giving each the same `owner` and
+`number`:
+
+```jsonc
+// repos/api/.claude/workflow.config.json
+"project": { "owner": "acme", "ownerType": "org", "number": 12, … }
+
+// repos/web/.claude/workflow.config.json   ← same board
+"project": { "owner": "acme", "ownerType": "org", "number": 12, … }
+```
+
+Each repo keeps its own branches, test commands and capabilities. Only the
+board is shared. During `/board-setup`, give it the board's number or URL and
+it will use that rather than looking for a repo-specific one.
+
+**Issue numbers are not unique across a shared board.** The API repo's #2 and
+the web repo's #2 are different tickets sitting in the same column. Every
+command that takes a number is therefore scoped to the repo you are standing
+in — `ghboard status 2` reports *your* #2, and `ghboard move 2 ready` moves
+*your* card, never the other project's.
+
+That scoping is why `list` shows only this repo by default:
+
+```
+ghboard list           # this repo's cards
+ghboard list --all     # every repo's cards, with the repo name
+ghboard list --all ready
+```
+
+```
+amlwwalker/12 — every repo on this board
+  api                #2     In review     Add the rate limiter
+  web                #2     Backlog       Dark mode toggle
+  web                #7     Ready         Export as CSV
+```
+
+The board owner does not have to be the repo owner either — a personal board
+can track work in org repos, and an org board can track personal ones.
+`ownerType` tells `gh` which it is.
 
 Override for an unusual layout:
 

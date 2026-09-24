@@ -3,7 +3,8 @@
 # ghboard — the only thing in this project that talks to the GitHub board.
 #
 #   ghboard validate               check the config against the live board
-#   ghboard list [phase]           every card, or just one column
+#   ghboard list [phase]           this repo's cards, or just one column
+#   ghboard list --all [phase]     every repo's cards, for a shared board
 #   ghboard find <text>            search issue titles and bodies
 #   ghboard next                   what to pick up: Ready, oldest first
 #   ghboard stale [days]           Backlog cards that are old or incomplete
@@ -31,7 +32,7 @@ warn() { printf '  \033[33m!\033[0m %s\n' "$1"; }
 head_() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 
 usage() {
-  sed -n '3,23p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '3,24p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 # Printed before the dependency checks, so a fresh machine still learns what
@@ -106,13 +107,45 @@ column_for_phase() {
   printf '%s' "$column"
 }
 
+# Scoped to this repo. On a board shared between repos the same issue number
+# exists more than once, and an unscoped lookup would move another project's
+# card — silently, and with a success message.
 item_id_for_issue() {
-  items | jq -r --argjson n "$1" \
-    '.items[] | select(.content.number == $n) | .id' | head -1
+  items | jq -r --argjson n "$1" --arg repo "$REPO" '
+    .items[]
+    | select(.content.number == $n)
+    | select((.content.repository // "") == ""
+             or ((.content.repository | sub("^https://github.com/";"")) == $repo))
+    | .id' | head -1
 }
 
 # id<TAB>number<TAB>status<TAB>title, optionally filtered to one column.
+#
+# One board often serves several repos, so issue numbers are NOT unique across
+# it — repo A's #2 and repo B's #2 are different tickets sitting side by side.
+# Every lookup by number therefore has to be scoped to this repo, or a command
+# will confidently report a card that belongs to somebody else.
 rows() {
+  local column="${1:-}"
+  items | jq -r --arg key "$STATUS_KEY" --arg col "$column" --arg repo "$REPO" '
+    .items[]
+    | select(.content.number != null)
+    # Keep the card when it belongs to this repo. An item with no repository
+    # field at all (a draft, or a schema change in gh) is kept rather than
+    # dropped: showing one extra card is a smaller failure than silently
+    # hiding the board.
+    | select((.content.repository // "") == ""
+             or ((.content.repository | sub("^https://github.com/";"")) == $repo))
+    | . as $i
+    | (.[$key] // "(no status)") as $st
+    | select($col == "" or $st == $col)
+    | [$i.id, ($i.content.number|tostring), $st, $i.content.title]
+    | @tsv'
+}
+
+# Every card on the board, including other repos' — for `list --all`, where
+# seeing the whole board is the point.
+rows_all() {
   local column="${1:-}"
   items | jq -r --arg key "$STATUS_KEY" --arg col "$column" '
     .items[]
@@ -120,7 +153,7 @@ rows() {
     | . as $i
     | (.[$key] // "(no status)") as $st
     | select($col == "" or $st == $col)
-    | [$i.id, ($i.content.number|tostring), $st, $i.content.title]
+    | [($i.content.repository // "?" | sub(".*/";"")), ($i.content.number|tostring), $st, $i.content.title]
     | @tsv'
 }
 
@@ -170,14 +203,32 @@ cmd_validate() {
 }
 
 cmd_list() {
-  local phase="${1:-}" column=""
+  local phase="${1:-}" all=0 column=""
+
+  # `list --all` shows every repo's cards, for a board shared across projects.
+  [[ "$phase" == "--all" ]] && { all=1; phase="${2:-}"; }
+  [[ "${2:-}" == "--all" ]] && all=1
+
   if [[ -n "$phase" ]]; then
     column="$(column_for_phase "$phase")"
     head_ "$column"
+  elif (( all == 1 )); then
+    head_ "$OWNER/$NUMBER — every repo on this board"
   else
-    head_ "$OWNER/$NUMBER — all cards"
+    head_ "$OWNER/$NUMBER — $REPO"
   fi
-  rows "$column" | print_rows
+
+  if (( all == 1 )); then
+    local any=0
+    while IFS=$'\t' read -r repo number status title; do
+      any=1
+      printf '  \033[2m%-18s\033[0m \033[36m#%-5s\033[0m \033[2m%-13s\033[0m %s\n' \
+        "$repo" "$number" "$status" "$title"
+    done < <(rows_all "$column")
+    (( any == 1 )) || printf '  \033[2m(none)\033[0m\n'
+  else
+    rows "$column" | print_rows
+  fi
 }
 
 # Search titles and bodies. For when you remember what a ticket said but not
@@ -480,7 +531,7 @@ cmd_move() {
 
 case "${1:-}" in
   validate) cmd_validate ;;
-  list)     cmd_list "${2:-}" ;;
+  list)     cmd_list "${2:-}" "${3:-}" ;;
   find)     [[ $# -ge 2 ]] || die "usage: ghboard find <text>";           shift; cmd_find "$*" ;;
   next)     cmd_next ;;
   stale)    cmd_stale "${2:-14}" ;;

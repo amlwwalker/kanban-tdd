@@ -49,12 +49,38 @@ Also note which capability providers are available in your skills list:
 
 ## 3. Ask, in order
 
-**The board.** If `gh project list` shows one obviously matching this repo,
-propose it. Otherwise ask for the number or URL, or offer to create one:
+**The board.** Ask rather than assume, because **one board often tracks
+several repos** and that is a supported setup, not an edge case. A team board
+called "Q3 delivery" is a perfectly normal answer here.
+
+If `gh project list` shows an obvious match, propose it — but say what you are
+proposing and offer the alternative in the same breath:
+
+> I found a board called `kanban-sandbox` (#6). Use that, or is this repo
+> tracked on a shared team board? Give me its number or URL if so.
+
+Otherwise take a number or URL, or offer to create one:
 
 ```bash
 gh project create --owner "@me" --title "<repo name>"
 ```
+
+The board's owner need not be the repo's owner: a personal board can track
+org repos and vice versa. Set `ownerType` to whichever the **board** belongs
+to — `gh` uses it to pick the right GraphQL root, and getting it wrong
+produces a confusing "could not resolve to a ProjectV2".
+
+For an org board:
+
+```bash
+gh project list --owner <org-login> --limit 20
+```
+
+If the board already has cards from other repos, say so — it confirms the
+shared setup and reassures the user that their existing work is safe:
+
+> Board #12 already has 14 cards, from `acme/api` and `acme/web`. Commands
+> here will be scoped to this repo; `ghboard list --all` shows everything.
 
 Read the live Status options rather than assuming the defaults:
 
