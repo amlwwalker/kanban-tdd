@@ -1,0 +1,23 @@
+{
+  "name": "amlwwalker",
+  "owner": {
+    "name": "Alex Walker",
+    "url": "https://github.com/amlwwalker"
+  },
+  "description": "Alex Walker's Claude Code plugins.",
+  "plugins": [
+    {
+      "name": "kanban-tdd",
+      "source": "./",
+      "description": "Ticket-driven development on a GitHub project board, with red→green commits as the audit trail.",
+      "category": "engineering",
+      "keywords": [
+        "github",
+        "project-board",
+        "kanban",
+        "tdd",
+        "tickets"
+      ]
+    }
+  ]
+}

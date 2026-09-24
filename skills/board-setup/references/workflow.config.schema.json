@@ -1,0 +1,241 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "kanban-tdd workflow configuration",
+  "description": "Binds the kanban-tdd plugin to one repository's board, branches and test commands. The skills themselves are repo-agnostic; everything that varies between projects lives here.\n\nDeliberately absent: the repository owner and name. Those come from `git remote`, so a fork, a rename or a transfer cannot leave a stale value here.",
+  "type": "object",
+  "required": [
+    "project",
+    "branches",
+    "tests"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "project": {
+      "type": "object",
+      "description": "The GitHub Projects v2 board this repo's work is tracked on.",
+      "required": [
+        "owner",
+        "ownerType",
+        "number",
+        "statusField",
+        "columns"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "User or organisation login that owns the board. Not necessarily the repo owner — one board often spans several repos."
+        },
+        "ownerType": {
+          "enum": [
+            "user",
+            "org"
+          ],
+          "description": "Decides whether gh is called with --owner @me / a login, and which GraphQL root is used."
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The board number, from its URL: /users/<owner>/projects/<number>."
+        },
+        "url": {
+          "type": "string",
+          "description": "Human-readable link, for messages and ticket bodies."
+        },
+        "statusField": {
+          "type": "string",
+          "default": "Status",
+          "description": "Name of the single-select field holding the column. GitHub's templates call it Status; a custom board may not."
+        },
+        "columns": {
+          "type": "object",
+          "description": "Maps the workflow's internal phase names to the literal option names on the board. These are matched EXACTLY, case included. `ghboard validate` reads the live options and fails if any value here is missing, rather than silently creating a duplicate column.",
+          "required": [
+            "backlog",
+            "ready",
+            "inProgress",
+            "inReview",
+            "done"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "backlog": {
+              "type": "string",
+              "description": "Written but not approved to start."
+            },
+            "ready": {
+              "type": "string",
+              "description": "Approved; engineering may begin."
+            },
+            "inProgress": {
+              "type": "string",
+              "description": "A feature branch exists and red→green is under way. Also where a card returns when human verification fails."
+            },
+            "inReview": {
+              "type": "string",
+              "description": "Merged to the integration branch and awaiting human verification."
+            },
+            "done": {
+              "type": "string",
+              "description": "Verified by a human. Moving a card here is what authorises a release."
+            }
+          }
+        }
+      }
+    },
+    "branches": {
+      "type": "object",
+      "required": [
+        "production",
+        "integration",
+        "featurePrefix"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "production": {
+          "type": "string",
+          "description": "Only ever receives PRs from the integration branch."
+        },
+        "integration": {
+          "type": "string",
+          "description": "Where 'In review' work lives so a human can test it."
+        },
+        "featurePrefix": {
+          "type": "string",
+          "description": "Branches are <prefix><issue-number>-<slug>."
+        }
+      }
+    },
+    "tests": {
+      "type": "object",
+      "description": "One entry per suite. `command` is what both a human and CI run — prefer a make target or equivalent, never a raw tool invocation, so the two cannot drift apart.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "dir",
+          "command",
+          "glob",
+          "language"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "dir": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "integrationCommand": {
+            "type": "string",
+            "description": "Optional slower suite needing real infrastructure."
+          },
+          "glob": {
+            "type": "string",
+            "description": "Used by test-inventory.sh to find test files."
+          },
+          "language": {
+            "enum": [
+              "go",
+              "vitest",
+              "jest",
+              "pytest",
+              "rspec",
+              "other"
+            ],
+            "description": "Selects how test-inventory.sh extracts names and descriptions. `go` reads the `//` comment above `func TestX`; `vitest`/`jest` read the it()/test() string; `pytest` reads the docstring under `def test_x`; `rspec` reads the it() string. `other` lists files without extracting names."
+          }
+        }
+      }
+    },
+    "lintCommand": {
+      "type": "string",
+      "description": "Optional. Run alongside the suites before a review handoff."
+    },
+    "ciCommand": {
+      "type": "string",
+      "description": "Optional. The single target CI runs, if the project has one. review-handoff prefers this over running suites individually, because it is what actually gates the merge."
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "Which installed skill provides each delegated job. `auto` means detect what is installed and ask once, then record the answer here. A concrete skill name is used without asking. `builtin` means use this plugin's own thinner version and stop offering alternatives. See references/capabilities.md in the plugin.",
+      "additionalProperties": false,
+      "properties": {
+        "design-interview": {
+          "$ref": "#/definitions/capability",
+          "description": "Interrogates a feature idea until the user story is solid. Preferred: `grilling` (mattpocock-skills). Fallback: `superpowers:brainstorming`."
+        },
+        "tdd-discipline": {
+          "$ref": "#/definitions/capability",
+          "description": "Owns test quality: seams, anti-patterns, vertical slices. Preferred: `tdd` (mattpocock-skills). Fallback: `superpowers:test-driven-development`. This plugin owns the red→green commit evidence regardless."
+        },
+        "ticket-slicing": {
+          "$ref": "#/definitions/capability",
+          "description": "Breaks a large plan into tracer-bullet tickets with blocking edges. Preferred: `to-tickets` (mattpocock-skills)."
+        },
+        "code-review": {
+          "$ref": "#/definitions/capability",
+          "description": "Reviews a branch before handoff. Preferred: `code-review` (mattpocock-skills). Fallback: the built-in `/code-review` command."
+        },
+        "ui-style": {
+          "$ref": "#/definitions/capability",
+          "description": "House design language for any new screen. There is no default — name your own, or omit it entirely. Skipped in silence when absent."
+        }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "description": "Issue labels the workflow applies. Created on demand if missing.",
+      "additionalProperties": false,
+      "properties": {
+        "verificationFailed": {
+          "type": "string",
+          "default": "verification-failed",
+          "description": "Applied when a human's manual check fails and the card is sent back from In review to In progress. The router treats a ticket carrying this label as a re-entry: read the failure comment before touching code."
+        }
+      }
+    },
+    "environments": {
+      "type": "object",
+      "description": "Where a human can go and try the work. Manual test steps reference these by name, and review-handoff refuses to write 'open dev' if it does not know where dev is.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "`auto`, `builtin`, or the exact name of an installed skill including any plugin prefix."
+        },
+        "optional": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, absence is skipped in silence rather than prompting."
+        }
+      }
+    }
+  }
+}

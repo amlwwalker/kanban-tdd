@@ -1,0 +1,34 @@
+{
+  "name": "kanban-tdd",
+  "version": "0.1.0",
+  "description": "Ticket-driven development on a GitHub project board. Moves work through Backlog → Ready → In progress → In review → Done, and makes each transition prove itself: a ticket before code, a red commit before a green one, a written manual test for anything only a human can check. Delegates design interviews, TDD discipline and code review to whichever skills you already use.",
+  "author": {
+    "name": "Alex Walker",
+    "url": "https://github.com/amlwwalker"
+  },
+  "homepage": "https://github.com/amlwwalker/kanban-tdd",
+  "repository": "https://github.com/amlwwalker/kanban-tdd",
+  "license": "MIT",
+  "keywords": [
+    "github",
+    "project-board",
+    "kanban",
+    "tdd",
+    "red-green",
+    "tickets",
+    "workflow",
+    "mermaid"
+  ],
+  "skills": [
+    "./skills/feature-workflow",
+    "./skills/board-setup",
+    "./skills/ticket-authoring",
+    "./skills/ticket-refinement",
+    "./skills/red-green",
+    "./skills/design-sketching",
+    "./skills/manual-test-design",
+    "./skills/review-handoff",
+    "./skills/verification-failed",
+    "./skills/release-to-production"
+  ]
+}
