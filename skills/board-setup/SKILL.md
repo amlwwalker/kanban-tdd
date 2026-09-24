@@ -113,20 +113,70 @@ writing "open dev".
 
 ## 4. Write it
 
+**Read `references/workflow.config.schema.json` in this skill directory before
+writing anything.** It is the authority on the file's shape, and the shape is
+not guessable — `ghboard` reads specific paths (`.project.columns.backlog`,
+`.tests.<name>.command`, `.capabilities.<name>.provider`) and a
+plausible-looking structure with different key names fails at the first
+command. Do not reconstruct it from this document or from memory.
+
+The exact skeleton, which every key below must match:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/amlwwalker/kanban-tdd/main/skills/board-setup/references/workflow.config.schema.json",
+  "project": {
+    "owner": "<login>",
+    "ownerType": "user",
+    "number": 0,
+    "url": "https://github.com/users/<login>/projects/0",
+    "statusField": "Status",
+    "columns": {
+      "backlog": "Backlog",
+      "ready": "Ready",
+      "inProgress": "In progress",
+      "inReview": "In review",
+      "done": "Done"
+    }
+  },
+  "branches": {
+    "production": "main",
+    "integration": "dev",
+    "featurePrefix": "feature/"
+  },
+  "tests": {
+    "unit": {
+      "dir": ".",
+      "command": "npm test",
+      "glob": "src/**/*.test.js",
+      "language": "vitest"
+    }
+  },
+  "capabilities": {
+    "design-interview": { "provider": "auto" },
+    "tdd-discipline":   { "provider": "auto" }
+  },
+  "labels": { "verificationFailed": "verification-failed" },
+  "environments": { "dev": { "url": null } }
+}
+```
+
+Note the shapes that are easy to get wrong: `tests` is an **object keyed by
+suite name**, not an array; each capability is an **object with a `provider`
+key**, not a bare string; `columns` lives **under `project`**; and
+`featurePrefix` is required.
+
 ```bash
 mkdir -p .claude
 ```
 
-Write `.claude/workflow.config.json` with the `$schema` key pointing at the
-plugin's copy, so editors give autocomplete and inline docs:
+Show the file before writing, and let them edit. Then confirm it parses and
+that the keys resolve:
 
-```json
-{
-  "$schema": "https://raw.githubusercontent.com/amlwwalker/kanban-tdd/main/skills/board-setup/references/workflow.config.schema.json"
-}
+```bash
+jq -e '.project.columns.backlog, .branches.integration,
+       (.tests | keys[0])' .claude/workflow.config.json
 ```
-
-Show the file before writing, and let them edit.
 
 ## 5. Validate against the live board
 

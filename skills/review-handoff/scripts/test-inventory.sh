@@ -142,13 +142,18 @@ while IFS=$'\t' read -r lang glob; do
         # sentence in both columns tells a reviewer nothing.
         suite=""
         while IFS=: read -r lineno content; do
-          # bash regex is POSIX ERE, which has no backreferences, so matching
-          # the closing quote needs sed rather than [[ =~ ]].
+          # Neither bash ERE nor BSD sed supports a backreference INSIDE the
+          # pattern, so "match the same quote that opened the string" has to be
+          # spelled as two explicit alternatives. GNU sed accepts \2 here and
+          # BSD sed silently does not substitute at all, which produced an
+          # empty inventory on macOS while looking fine on Linux.
           if [[ "$content" =~ ^[[:space:]]*describe\( ]]; then
-            suite="$(sed -E 's/^[[:space:]]*describe\((["'"'"'])(.*)\1.*$/\2/' <<<"$content")"
+            suite="$(sed -E "s/^[[:space:]]*describe\(\"([^\"]*)\".*$/\1/; \
+                             s/^[[:space:]]*describe\('([^']*)'.*\$/\1/" <<<"$content")"
             continue
           fi
-          desc="$(sed -E 's/^[[:space:]]*(it|test)\((["'"'"'])(.*)\2.*$/\3/' <<<"$content")"
+          desc="$(sed -E "s/^[[:space:]]*(it|test)\(\"([^\"]*)\".*$/\2/; \
+                          s/^[[:space:]]*(it|test)\('([^']*)'.*\$/\2/" <<<"$content")"
           [[ -n "$desc" && "$desc" != "$content" ]] || continue
           emit_row "${suite:-$(basename "$rel" .test.tsx)}" "$desc" "$rel" "$lineno"
           rows=$((rows + 1))
