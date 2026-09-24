@@ -59,7 +59,14 @@ the only checks that are not self-certified.
    The config deliberately does not store this, so a fork or rename cannot
    leave a stale value.
 
-3. **Validate the board** with `ghboard validate`. It lists the live Status
+3. **Find `ghboard`.** Every command below is written as a bare `ghboard`.
+   `/board-setup` installs a shim at `.claude/bin/ghboard`, so prefer that;
+   fall back to
+   `"$CLAUDE_PLUGIN_ROOT/skills/feature-workflow/scripts/ghboard"` if the
+   shim is missing, and offer to regenerate it. Do not hunt for the script
+   under `~/.claude/plugins` by hand.
+
+4. **Validate the board** with `ghboard validate`. It lists the live Status
    options and compares them to `project.columns`. If they disagree it stops.
    Do not "helpfully" create the missing column — a typo in the config and a
    genuinely absent column look identical from here, and one of those is fixed

@@ -139,10 +139,25 @@ One short message: the PR link, the issue link, and that the checklist is
 waiting on the ticket. Do not paste the whole checklist into chat — it lives on
 the card so it can be ticked.
 
+**Link straight to the checklist, and never say "the checklist above".** The
+steps live in the issue body while your handoff is a separate message, so
+"above" points at nothing and the reader counts steps in the wrong place. Use
+the anchor:
+
+```
+https://github.com/<repo>/issues/<n>#user-content-manual-verification-checklist
+```
+
 Say explicitly how to report a failure, and that nothing polls:
 
-> If a step fails, comment on the issue with the step number and what you saw,
-> then tell me. Nothing polls GitHub, so I will not see the comment otherwise.
+> Checklist is on the ticket: <link>. If a step fails, comment on the issue
+> with the **step number** and what you saw, then tell me. Nothing polls
+> GitHub, so I will not see the comment otherwise.
+
+Asking for the number matters: `verification-failed` quotes the step back
+verbatim to confirm it is looking at the right one, and a mismatch between the
+number reported and the step described is the signal that something was
+misread rather than genuinely broken.
 
 ## What this skill will not do
 

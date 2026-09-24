@@ -178,10 +178,45 @@ jq -e '.project.columns.backlog, .branches.integration,
        (.tests | keys[0])' .claude/workflow.config.json
 ```
 
-## 5. Validate against the live board
+## 5. Install the ghboard shim
+
+Every skill writes `ghboard <command>` as a bare name, and the real script
+lives inside the plugin where nothing can find it. Write a one-line shim into
+the repo so the bare name resolves for both Claude and the human:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/feature-workflow/scripts/ghboard" validate
+mkdir -p .claude/bin
+cat > .claude/bin/ghboard <<'SHIM'
+#!/usr/bin/env bash
+# Shim: the real script ships inside the kanban-tdd plugin. Regenerate with
+# /board-setup if the plugin moves.
+exec "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/cache/amlwwalker/kanban-tdd}/skills/feature-workflow/scripts/ghboard" "$@"
+SHIM
+chmod +x .claude/bin/ghboard
+```
+
+Check it resolves, and say plainly if it does not — a shim pointing at a
+missing file is worse than no shim, because the failure appears later and
+looks like a board problem:
+
+```bash
+.claude/bin/ghboard --help >/dev/null && echo "shim ok"
+```
+
+Tell the user to add it to their PATH for interactive use, and that skills
+find it either way:
+
+```bash
+export PATH="$PWD/.claude/bin:$PATH"     # or add to .envrc / shell profile
+```
+
+Commit the shim. It is three lines and it means a colleague who clones the
+repo needs nothing but the plugin.
+
+## 6. Validate against the live board
+
+```bash
+.claude/bin/ghboard validate
 ```
 
 This is the step that catches a typo in a column name. If it fails, fix the
@@ -189,7 +224,7 @@ config — do not create columns to match a possible typo. A mistyped name and a
 genuinely missing column look identical from here, and one is fixed by editing
 a file while the other needs a human decision.
 
-## 6. Offer the CLAUDE.md snippet
+## 7. Offer the CLAUDE.md snippet
 
 The process lives in the skills, so this stays short. Offer to append:
 
@@ -215,11 +250,16 @@ Keep it to that shape. Rules that belong to the process are already in the
 skills and travel with the plugin; a copy in CLAUDE.md is a second source of
 truth that will disagree after the first update.
 
-## 7. Say what to do next
+## 8. Say what to do next
 
 ```bash
 ghboard list        # see the board
 ghboard next        # what to pick up
 ```
+
+Then say the thing that actually matters for a first-time user: **they do not
+invoke skills by name.** Describing a feature in their own words — "I want
+users to be able to reset their password" — is what starts the flow, and the
+first thing that happens is an interview, not code.
 
 Then `feature-workflow` for anything else.
