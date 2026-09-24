@@ -261,8 +261,27 @@ find it either way:
 export PATH="$PWD/.claude/bin:$PATH"     # or add to .envrc / shell profile
 ```
 
-Commit the shim. It is three lines and it means a colleague who clones the
-repo needs nothing but the plugin.
+**Commit the shim, in the same commit as the config.** Not optional, and not
+"suggest it later". An untracked `.claude/bin/ghboard` disappears the moment
+anyone checks out a different branch — which is the very next thing that
+happens, when work starts and a feature branch is cut. The failure then looks
+like the plugin is broken rather than like a file that was never tracked.
+
+```bash
+git add .claude/workflow.config.json .claude/bin/ghboard
+```
+
+It is a dozen lines, and it means a colleague who clones the repo needs
+nothing but the plugin.
+
+If the repo's `.gitignore` excludes `.claude/`, say so and ask before adding
+a negation — some teams deliberately keep that directory local, and that is
+their call, not yours:
+
+```gitignore
+!.claude/workflow.config.json
+!.claude/bin/ghboard
+```
 
 ## 6. Validate against the live board
 

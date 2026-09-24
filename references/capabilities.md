@@ -19,6 +19,42 @@ workflow without either being forced on them.
 | `code-review` | `code-review` | `/code-review` (built into Claude Code) | yes, a checklist |
 | `ui-style` | config-named only | — | skipped silently |
 
+### Why this order, and when to override it
+
+**With both installed, the preferred column wins.** The order is not a
+judgement about which plugin is better in general — it is about which one fits
+*this* workflow, where a ticket is the unit of work and evidence is the point:
+
+- **`grilling` over `superpowers:brainstorming`** — it emits ADRs and a
+  glossary as it interviews. Those are durable artifacts that outlive the
+  conversation, which is what a ticket wants. `brainstorming` runs a good
+  interview but leaves nothing behind except the answer.
+- **`tdd` over `superpowers:test-driven-development`** — it makes you name and
+  confirm the seam before the first test, and its vertical-slice rules map
+  directly onto one line of a ticket's test plan.
+- **`code-review` over `/code-review`** — it reviews against the originating
+  ticket as well as the code, which is the check this workflow cares about.
+
+**This is a default, not a verdict.** A team that prefers the other provider
+for any of these should say so, and the way to say so is to name it in the
+config rather than argue with a skill mid-ticket:
+
+```jsonc
+"capabilities": {
+  "design-interview": { "provider": "superpowers:brainstorming" }
+}
+```
+
+A concrete name in config is obeyed without question — step 1 below. It beats
+the preference order, it beats detection, and it never gets re-litigated.
+Whoever wrote it had a reason, and a tool second-guessing a recorded decision
+every session is worse than one that occasionally uses the wrong interview.
+
+Adding a provider later does **not** silently change anything: config is read
+first, so an existing entry keeps winning until someone reruns `/board-setup`
+or edits the file. That is deliberate — upgrading your toolchain should not
+quietly change how your tickets get written mid-project.
+
 Preferred providers come from `mattpocock-skills`
 (https://github.com/mattpocock/skills, MIT). Depending on your install they may
 appear bare (`grilling`) or namespaced (`mattpocock-skills:grilling`) — accept
