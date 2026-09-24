@@ -497,10 +497,45 @@ cmd_add() {
     return
   fi
 
-  gh project item-add "$NUMBER" --owner "$OWNER" \
-    --url "https://github.com/$REPO/issues/$issue" >/dev/null
+  local out
+  if ! out="$(gh project item-add "$NUMBER" --owner "$OWNER" \
+                --url "https://github.com/$REPO/issues/$issue" 2>&1)"; then
+    die "could not add #$issue to the board:
+    $out"
+  fi
+
   ITEMS_CACHE=""
-  ok "added #$issue to the board"
+
+  # GitHub's items index lags behind the write by a few seconds, and
+  # occasionally longer. Confirm the card really landed rather than trusting
+  # a zero exit code — a false ✓ here makes work look placed when it is not.
+  local n
+  for n in 1 2 3 4 5; do
+    if [[ -n "$(item_id_for_issue "$issue")" ]]; then
+      ok "added #$issue to the board"
+      return
+    fi
+    sleep 2
+    ITEMS_CACHE=""
+  done
+
+  # Authoritative check: ask the issue which projects it is on. The items
+  # connection can stay stale for minutes while this is already correct.
+  if gh api graphql -f query='
+        query($owner:String!,$repo:String!,$n:Int!){
+          repository(owner:$owner,name:$repo){
+            issue(number:$n){ projectItems(first:20){ nodes{ project{ number } } } }}}' \
+       -f owner="${REPO%%/*}" -f repo="${REPO##*/}" -F n="$issue" \
+       --jq '.data.repository.issue.projectItems.nodes[].project.number' 2>/dev/null \
+     | grep -qx "$NUMBER"; then
+    ok "added #$issue to the board"
+    warn "GitHub's board index is stale; list and status may not show it yet"
+    return
+  fi
+
+  die "#$issue does not appear on board $OWNER/$NUMBER after adding it.
+    Check the board in a browser before retrying — adding twice is harmless
+    but a silent failure here is not."
 }
 
 cmd_move() {
