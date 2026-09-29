@@ -215,6 +215,10 @@ interviews nobody asked for:
 >   one repo or more than two people file tickets.
 > - **Priority and size** — as project fields, with definitions.
 > - **Named testers** — a sign-off checkbox per person on every ticket.
+> - **Complexity, model routing and epics** — size says how much, complexity
+>   says how hard, and the model to use follows from complexity. Epics let a
+>   big ticket become real GitHub sub-issues that can be worked in parallel.
+>   Worth it once tickets vary enough that one model is wrong for most of them.
 > - **Logging and API conventions** — so a ticket's design says what a feature
 >   logs and which error shape it returns, rather than that being remembered at
 >   review. The biggest one, and the one most worth doing on a backend.
@@ -247,6 +251,35 @@ the default, and say why it matters:
 number from their board. "Comparable to #237" is checkable; "medium" is not.
 
 **Testers.** Names, and GitHub logins if they want @-mentions.
+
+**Complexity.** Offer three or four levels and push for definitions about the
+*reasoning* required, not the line count. A useful set looks like: trivial
+"obvious once located, one file, no design decisions"; moderate "several places
+must agree, but failure is loud"; hard "touches an invariant other code depends
+on, and getting it wrong fails silently".
+
+Create the project field if it does not exist, the same way as Priority.
+
+**Model routing.** Only ask once complexity exists — without it there is
+nothing to route on. Propose a mapping from the current model line-up and let
+them correct it, since names change:
+
+> Which model for each complexity? A reasonable default is Haiku for trivial,
+> Sonnet for moderate, Opus for hard. And which subjects should always escalate
+> a tier regardless — I would suggest security, auth, data migrations and
+> concurrency, because a cheap model on a cheap-looking auth change is the
+> expensive mistake.
+
+Say plainly that the plugin **records** the choice and never switches the model
+itself; the human switches with `/model`.
+
+**Epics.** Ask whether big tickets should become GitHub sub-issues, and at what
+threshold to propose it — a size, a criteria count, or a number of services
+spanned. Stress that a breach only starts a conversation:
+
+> These are prompts, not rules. A large ticket that is genuinely one coherent
+> change should stay one ticket — splitting it produces children nobody can
+> review on their own.
 
 **Logging.** See section 3c — it is the longest and the most valuable.
 

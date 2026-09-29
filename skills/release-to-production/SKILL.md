@@ -46,6 +46,22 @@ If the user asks to release something still in review, tell them what is
 outstanding and let them decide. They may well say "yes, go" — that is their
 call, and it should be made knowingly rather than by a tool quietly assuming.
 
+## 1b. If it is an epic, every child must be closed
+
+A parent with open sub-issues is not done, whatever its own column says.
+GitHub tracks this, so check rather than trust:
+
+```bash
+gh api graphql -H "GraphQL-Features: sub_issues" \
+  -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){
+    issue(number:$n){subIssuesSummary{total completed}}}}' \
+  -f o=<owner> -f r=<repo> -F n=<issue>
+```
+
+If `completed` is below `total`, stop and name the open children. Shipping a
+parent whose children are unfinished is shipping a half-built feature with a
+ticket that claims otherwise.
+
 ## 2. Read the ticket for late objections
 
 ```bash

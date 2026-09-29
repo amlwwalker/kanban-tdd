@@ -131,6 +131,50 @@ Size, if configured, is **how much work, not how urgent** — the two are
 independent, and a one-line fix can be the most urgent thing on the board.
 Anchor it to a real ticket from `size.anchors` rather than an adjective.
 
+### Complexity, which is not size
+
+Skip if the config has no `complexity` block.
+
+**Size is how much. Complexity is how hard to get right.** They come apart
+constantly, and conflating them is how a subtle change gets handed to whoever
+is free:
+
+| | Low complexity | High complexity |
+|---|---|---|
+| **Small** | a copy fix, a config flag | a concurrency invariant, an auth check |
+| **Large** | a mechanical rename across 200 files | a migration with a rollback path |
+
+Judge it on the **reasoning** required, against `complexity.levels`:
+
+- How many places must be true at once for this to be correct?
+- Is failure loud or silent? Silent failure raises complexity sharply.
+- Does it touch an invariant other code depends on without saying so?
+- Could a competent person who has not read this codebase get it right?
+
+State it in one line with the same discipline as priority — why this level and
+not the one below:
+
+> **Complexity: moderate.** The tier boundaries are simple arithmetic, but
+> rounding interacts with the total and getting it wrong is off by one unit
+> rather than obviously broken, so it is not trivial.
+
+### Which model should do this
+
+Skip if the config has no `models` block.
+
+Read `models.byComplexity` for the complexity you just set, then check
+`models.escalateOn`: if the ticket touches anything on that list — security,
+auth, data migration, concurrency — take the next tier up **regardless of
+complexity**. A cheap model on a cheap-looking auth change is exactly the
+mistake that list exists to prevent. Say so when you escalate:
+
+> **Model: `claude-opus-5`.** Moderate complexity would suggest Sonnet, but
+> this touches session handling, which is on the escalation list.
+
+Record it in the ticket body so the decision survives into whatever session
+picks the work up. **This plugin does not switch models.** Say which and why,
+and note that the human switches with `/model` before starting.
+
 ### Check the story is actually buildable
 
 A user story almost always assumes a capability the codebase does not have.
@@ -161,16 +205,87 @@ Never write acceptance criteria the code could not satisfy even when finished.
 A ticket that silently assumes a missing system is the most expensive kind: it
 reads like a plan, so nobody questions it until someone is three days in.
 
-### If it is too big for one ticket
+### Is this an epic?
 
-If the work is several vertical slices rather than one, resolve
-`ticket-slicing` and use that provider to break it up. Each slice cuts a narrow
-but complete path through every layer — schema, API, UI, tests — and is
-demoable on its own. A slice that touches only one layer is not a slice.
+Skip if the config has no `epics` block, or `epics.enabled` is false.
 
-Built-in, if nothing is installed: size each ticket to fit one focused session,
-give each one its blockers, and sequence any prefactoring first. "Make the
-change easy, then make the easy change."
+Most tickets are one ticket. Check the `epics.splitWhen` thresholds — a size at
+or above `sizeAtLeast`, more than `criteriaAtLeast` acceptance criteria, or
+spanning `touchesServices` services — and treat a breach as **a prompt to have
+the conversation, never as an automatic split**. A large ticket that is
+genuinely one coherent change should stay one ticket, and splitting it produces
+children nobody can review independently.
+
+The real test is not size. It is: **could two people pick up different parts of
+this and not tread on each other?** If no, it is one ticket however big.
+
+#### Proposing the split
+
+Resolve `ticket-slicing` and use that provider. Built-in otherwise: each child
+cuts a narrow but **complete** path through every layer — schema, API, UI,
+tests — and is demoable on its own. A child that touches only one layer is not
+a slice, it is a task, and it will not be independently verifiable.
+
+Show the proposed breakdown and **wait**. For each child give the one-line
+scope, its size and complexity, the model that follows from them, and — the
+part that matters for working in parallel — **what blocks it**:
+
+> This is four slices. Two can start immediately, two are blocked:
+>
+> | | Child | Size | Cx | Model | Blocked by |
+> |---|---|---|---|---|---|
+> | 1 | The `discounts` table and its migration | S | trivial | haiku | — |
+> | 2 | `priceCart` returning the priced shape | M | moderate | sonnet | — |
+> | 3 | Tier rules applied in `priceCart` | M | moderate | sonnet | 1, 2 |
+> | 4 | The checkout line item | S | trivial | haiku | 3 |
+>
+> 1 and 2 are independent and can run concurrently. Shall I raise all four?
+
+Be honest about the dependency edges. Two children that both edit the same
+function are not parallel however separate they look on a board, and claiming
+otherwise produces a merge conflict rather than a speed-up.
+
+#### Creating the epic
+
+The parent keeps the **why**, the capabilities and the acceptance criteria that
+span the whole thing. It gets no TDD plan of its own: every test belongs to a
+child, and a parent with its own tests is a child in disguise.
+
+Create the parent first, then each child, then link them with GitHub's native
+sub-issues — not a checklist of links. GitHub then tracks completion itself, so
+the epic cannot be signed off while a child is open:
+
+```bash
+PARENT=$(gh issue view <parent> --json id -q .id)
+CHILD=$(gh issue view <child> --json id -q .id)
+gh api graphql -H "GraphQL-Features: sub_issues" \
+  -f query='mutation($p:ID!,$c:ID!){addSubIssue(input:{issueId:$p subIssueId:$c}){
+    issue{number subIssuesSummary{total completed percentCompleted}}}}' \
+  -f p="$PARENT" -f c="$CHILD"
+```
+
+Apply `epics.label` to the parent if one is configured. Put every child on the
+board in `backlog` as usual — **each child is a normal ticket** and goes
+through the same gates: its own story if it needs one, its own criteria bound
+to tests, its own red→green pairs, its own review. An epic changes how work is
+grouped, not how it is built.
+
+Record each child's blockers in its body (`Blocked by #12`) so the next person
+picking one up knows whether it can start.
+
+#### Working an epic
+
+The parent never gets a branch. Work happens on the children, and `red-green`
+runs per child exactly as it would for a standalone ticket.
+
+Children with no blockers can be worked **concurrently** — by separate
+sessions, or dispatched as parallel subagents with the model each child's
+complexity calls for. That is the payoff of the honest dependency edges above:
+the cheap trivial children do not need the expensive model, and independent
+ones do not need to wait.
+
+The parent moves to done only when GitHub reports every sub-issue closed, and
+the human signs off its spanning criteria.
 
 ### Technical design
 

@@ -176,6 +176,22 @@ Work out the phase from evidence, in this order, and stop at the first match.
    `ghboard read <n>` — **body and comments** — check its column, and route by
    the state machine above.
 
+   **If it is an epic** (it has sub-issues), do not cut a branch for it. Show
+   the children with their status and blockers, and route to whichever is both
+   open and unblocked. Children with no blockers can be worked concurrently:
+
+   ```bash
+   gh api graphql -H "GraphQL-Features: sub_issues" \
+     -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){
+       issue(number:$n){subIssues(first:50){nodes{number title state}}
+       subIssuesSummary{total completed}}}}' \
+     -f o=<owner> -f r=<repo> -F n=<n>
+   ```
+
+   **If it is a sub-issue**, treat it as a normal ticket — same gates, same
+   red→green — but check its `Blocked by` line first and say plainly if a
+   blocker is still open rather than starting anyway.
+
 4. **The user is reporting that a manual check failed?** → `verification-failed`.
 
 4b. **Asking to promote between environments?** → `release-to-production`. It

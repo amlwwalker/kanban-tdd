@@ -512,6 +512,99 @@
           "description": "Further conventions: pagination, versioning, idempotency, naming."
         }
       }
+    },
+    "complexity": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How hard the work is to reason about, which is NOT how much of it there is. A thousand-line rename is large and trivial; a twenty-line change to a concurrency invariant is small and hard. Size drives scheduling, complexity drives who or what should do it. Omit to skip the whole idea.",
+      "properties": {
+        "field": {
+          "type": "string",
+          "default": "Complexity",
+          "description": "Project field name. Created by board-setup if absent."
+        },
+        "levels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Level to what makes work land there. Describe the REASONING difficulty, not the line count: 'the change is obvious once located, one file, no design decisions' versus 'touches an invariant several callers depend on, and getting it wrong is silent'."
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Which model should implement a ticket, chosen from its complexity. Recorded on the ticket so a session can switch before starting, and so a parallel fan-out does not send every sub-issue to the most expensive option. Omit and no model is ever suggested.",
+      "properties": {
+        "byComplexity": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Complexity level to model name, e.g. {\"trivial\":\"claude-haiku-4-5\", \"moderate\":\"claude-sonnet-5\",\"hard\":\"claude-opus-5\"}. Names must be ones the harness accepts; board-setup proposes current ones and the user corrects them."
+        },
+        "default": {
+          "type": "string",
+          "description": "Used when complexity is unset or unmapped. Prefer a mid tier."
+        },
+        "escalateOn": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Conditions that override the mapping upward regardless of complexity, e.g. security, data-migration, concurrency, auth. A cheap model on a cheap-looking auth change is the expensive mistake this prevents."
+        },
+        "note": {
+          "type": "string",
+          "description": "One line shown with the suggestion, e.g. 'switch with /model before starting'. The plugin records the choice; it does not switch the model itself."
+        }
+      }
+    },
+    "epics": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "When a ticket is too big to be one ticket, it becomes a parent with GitHub sub-issues rather than a long checklist. Sub-issues carry a real parent link and GitHub tracks completion, so the epic cannot be signed off while a child is open.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Optional label applied to the parent, e.g. 'type:epic'. Null to rely on the sub-issue relationship alone."
+        },
+        "splitWhen": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Thresholds at which authoring proposes a split rather than one ticket. These are prompts for a conversation, never automatic.",
+          "properties": {
+            "sizeAtLeast": {
+              "type": "string",
+              "description": "A size value from `size.values`, e.g. 'L'."
+            },
+            "criteriaAtLeast": {
+              "type": "integer",
+              "minimum": 2,
+              "description": "Acceptance criteria count above which the work is probably several slices."
+            },
+            "touchesServices": {
+              "type": "integer",
+              "minimum": 2,
+              "description": "Number of services a single ticket spans before it wants splitting."
+            }
+          }
+        },
+        "parallelisable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Record on each sub-issue whether it can start immediately or is blocked by a sibling. Independent children can be worked concurrently; dependent ones cannot, and saying which is which is the difference between a useful fan-out and a merge conflict."
+        }
+      }
     }
   },
   "definitions": {

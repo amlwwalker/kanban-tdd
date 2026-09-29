@@ -35,6 +35,28 @@ entirely if priority is not configured.>
 <Only when configured. The value, anchored to a real ticket rather than an
 adjective. Delete if not configured.>
 
+## Complexity
+
+<Only when configured. How hard to get RIGHT, not how much of it there is.
+One sentence saying why this level and not the one below. Delete if not
+configured.>
+
+**Complexity: <level>.** <why>
+
+## Model
+
+<Only when `models` is configured. Which model should implement this, from the
+complexity above, plus any escalation and its reason. The human switches with
+/model before starting; nothing switches automatically. Delete if not
+configured.>
+
+**Model: `<name>`.** <why, including any escalation>
+
+## Blocked by
+
+<Only on a sub-issue that cannot start yet. List the sibling issues that must
+close first, e.g. `Blocked by #12, #13`. Delete when nothing blocks it.>
+
 ## Design
 
 <For API work: method, path, request body, every status code and what each
