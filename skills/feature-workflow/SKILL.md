@@ -182,6 +182,10 @@ Work out the phase from evidence, in this order, and stop at the first match.
    handles integration→staging as well as staging→production, and knows which
    cards each may carry.
 
+4c. **Asking about unlabelled or untidy tickets?** → `triage`. Issue forms only
+   apply in the web UI, so anything filed by an agent or the API bypasses them
+   and needs a sweep.
+
 5. **Nothing else matches** → phase 1. The story comes first: `ticket-authoring`
    opens with the user story and does not proceed to technical design until it
    is agreed.

@@ -22,6 +22,19 @@ asking "but what about…" and stops the implementer quietly widening the work.>
 
 - <thing>
 
+## Priority
+
+<Only when the config has a `priority` block. The level, then one sentence
+saying why this level and not the one above or below. Delete this section
+entirely if priority is not configured.>
+
+**Priority P2.** <why, arguing both boundaries>
+
+## Size
+
+<Only when configured. The value, anchored to a real ticket rather than an
+adjective. Delete if not configured.>
+
 ## Design
 
 <For API work: method, path, request body, every status code and what each
@@ -69,7 +82,18 @@ observable outcome. "Works correctly" is not a criterion.>
 - [ ] **AC2** <observable outcome>
 - [ ] **AC3** <observable outcome>
 
+## Logging
+
+<Only when the config has a `logging` block AND the feature touches something
+in `logByDefault`. What it logs, at what level, and what it must never log.
+Three lines, not three paragraphs. Delete if neither applies.>
+
 ## Manual verification checklist
 
 _Filled in by `review-handoff` once the work is on the integration branch and
 there is a real UI to write steps against._
+
+## This ticket has been tested by
+
+<Only when the config has a `testers` list. One checkbox per person, so
+sign-off has an owner. Omit on a security ticket. Delete if not configured.>
