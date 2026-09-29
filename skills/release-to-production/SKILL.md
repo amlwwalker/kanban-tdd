@@ -7,6 +7,12 @@ description: Ship verified work to production by opening and merging a PR from t
 
 A human's verification is the authorisation. Nothing else is.
 
+## 0a. The model for this phase
+
+If `models.byPhase.release` names one and it differs from the session's, say so
+per `references/models.md`. Release is mechanical but the consequences are
+production, so this is not the phase to economise on.
+
 ## 0. Which promotion is this?
 
 Read `project.columns`. Two shapes, and they gate differently.

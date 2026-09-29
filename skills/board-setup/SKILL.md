@@ -270,8 +270,29 @@ them correct it, since names change:
 > concurrency, because a cheap model on a cheap-looking auth change is the
 > expensive mistake.
 
-Say plainly that the plugin **records** the choice and never switches the model
-itself; the human switches with `/model`.
+Then ask about the **other phases**, because implementation is not the only
+work and the rest do not vary by ticket:
+
+> Implementation varies per ticket, so it comes from complexity. The other
+> phases do not. Which model for each — leave any blank to make no suggestion?
+>
+> - **Design** (the story interview and writing the ticket). I would suggest
+>   your strongest. A badly framed ticket is not caught by tests; it gets built
+>   correctly and then rewritten, so every downstream cost is set here.
+> - **Refinement**, **review**, **release** — mid tier. Release is mechanical
+>   but the consequences are production, so not the cheapest.
+> - **Triage** — reading and labelling, the safest phase to run small.
+
+Finally, how much to ask:
+
+> When a phase or ticket suggests a model, should I ask before proceeding?
+> **Always** is the default and what I would recommend: the suggestion is a
+> token-efficiency guess, and an under-powered model doing damage costs far
+> more than it saves. **Escalations only** asks just when the escalation list
+> forced a tier up. **Never** records and proceeds.
+
+Say plainly that the plugin **records and suggests**; it never switches the
+model itself, and the human switches with `/model`.
 
 **Epics.** Ask whether big tickets should become GitHub sub-issues, and at what
 threshold to propose it — a size, a criteria count, or a number of services

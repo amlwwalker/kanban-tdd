@@ -12,6 +12,11 @@ is missing. Nothing else.
 This is the gate between Backlog and Ready, and Ready means engineering begins.
 Everything a person needs in order to start must already be in the ticket.
 
+## 0. The model for this phase
+
+If `models.byPhase.refinement` names one and it differs from the session's,
+mention it once and carry on per `references/models.md`.
+
 ## 1. Read the whole thing
 
 ```bash

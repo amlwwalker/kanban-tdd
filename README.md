@@ -625,8 +625,46 @@ From a real run, four children of one epic:
 The second row is the point: small, but a wrong discount fails silently, so it
 gets the expensive model. A size-only system sends that one to Haiku.
 
-The plugin **records** the choice on the ticket; it never switches models. You
-switch with `/model` before starting.
+**Every ticket gets one, not just epics.** Implementation is the only phase
+whose model varies per ticket, so it comes from complexity. The rest are
+phases, set once in `models.byPhase`:
+
+| Phase | Typical | Why |
+|---|---|---|
+| **Design** — the interview and the ticket | your strongest | A badly framed ticket is not caught by tests. It gets built correctly, then rewritten. |
+| Refinement, review, release | mid | Judgement and checking. Release is mechanical but the consequences are production. |
+| Triage | smallest | Reading and labelling. |
+
+**And it asks.** With `models.confirm: "always"` (the default), the suggestion
+comes with its reasoning and waits:
+
+> **Model: `claude-haiku-4-5`** for implementation. Trivial complexity,
+> nothing on the escalation list, and the test plan is already fixed so a small
+> model cannot narrow the scope. Happy with Haiku, or pick another?
+
+The plugin **records and suggests**; it never switches models. You switch with
+`/model`. Set `escalations-only` to be asked just when the escalation list
+forces a tier up, or `never` to record silently.
+
+### Do the tests make a small model safe?
+
+Partly, and the gap is worth knowing. A predefined test plan **does** stop a
+weak model narrowing the scope, because the criteria were agreed by a stronger
+one at design time. That is real protection.
+
+But a green suite does not prove a good implementation. Three things pass: a
+**tautological test** whose assertion recomputes the expected value the way the
+code does; an implementation that **special-cases the exact inputs** under
+test; and **collateral damage** — every criterion met while something uncovered
+breaks, a performance cliff or a leaked field on the `neverLog` list.
+
+`red-green` makes the first two harder, since a test committed alone and
+watched failing is difficult to fake and checkable afterwards. It does not make
+them impossible.
+
+Tests are a floor, not a ceiling. That is why the choice is worth a sentence of
+your attention, and why `escalateOn` overrides complexity outright for subjects
+where a wrong answer is silent.
 
 ### Epics
 

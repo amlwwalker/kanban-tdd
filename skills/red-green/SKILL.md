@@ -55,6 +55,15 @@ it did not work. Read the failure comment. The failed step is your next
 behaviour, and it gets a red test that reproduces the failure before any fix —
 a bug a human found is still a bug.
 
+### Check the model the ticket asks for
+
+If the ticket records a **Model** and this session is on a different one, say
+so before the first test and ask — see `references/models.md`. The ticket's
+suggestion came from its complexity and may have been escalated; the person
+about to work it knows things the config does not.
+
+Proceed on whichever they choose. Do not refuse to work on their pick.
+
 ### Agree the seams
 
 Before any test is written, name the public boundary you will test at and

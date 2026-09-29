@@ -9,6 +9,11 @@ description: Move an implemented feature to In review — run every suite and CI
 of the integration branch, not about your intentions — so the card moves last,
 after the code is genuinely there.
 
+## 0a. The model for this phase
+
+If `models.byPhase.review` names one and it differs from the session's,
+mention it once per `references/models.md`, then continue.
+
 ## 0. Preflight — always, and first
 
 The cheapest step, and it catches the most expensive mistake: adding commits

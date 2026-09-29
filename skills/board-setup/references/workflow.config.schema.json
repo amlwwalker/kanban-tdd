@@ -558,6 +558,23 @@
         "note": {
           "type": "string",
           "description": "One line shown with the suggestion, e.g. 'switch with /model before starting'. The plugin records the choice; it does not switch the model itself."
+        },
+        "byPhase": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Model per phase of work, for the phases that are not implementation. Implementation comes from byComplexity, because it is the only phase whose difficulty varies per ticket.\n\nKeys: `design` (the story interview and ticket authoring — the most expensive reasoning in the flow and the worst place to economise, since a bad ticket costs a rewrite), `refinement` (assessing whether a ticket is ready), `review` (handoff checks and the test inventory), `release` (promotion), `triage` (sweeping for unlabelled tickets — mechanical, and the cheapest phase to run on a small model).\n\nOmit a key and that phase makes no suggestion at all."
+        },
+        "confirm": {
+          "type": "string",
+          "enum": [
+            "always",
+            "escalations-only",
+            "never"
+          ],
+          "default": "always",
+          "description": "Whether to ask before a phase proceeds on a suggested model. `always` states the suggestion and waits — the safe default, since an under-powered model fixing code is more expensive than the tokens it saves. `escalations-only` asks only when escalateOn forced a tier up. `never` records the suggestion silently and proceeds."
         }
       }
     },

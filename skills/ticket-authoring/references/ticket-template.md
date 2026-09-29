@@ -50,7 +50,9 @@ complexity above, plus any escalation and its reason. The human switches with
 /model before starting; nothing switches automatically. Delete if not
 configured.>
 
-**Model: `<name>`.** <why, including any escalation>
+**Model: `<name>`.** <why, including any escalation. This is a suggestion the
+author confirmed, not a constraint: whoever picks the ticket up may choose
+otherwise, and a larger model is always a safe departure.>
 
 ## Blocked by
 

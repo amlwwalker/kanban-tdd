@@ -15,6 +15,13 @@ skill — a story written to justify a solution someone already has in mind is
 not a story, and the technical design that follows inherits every assumption
 nobody examined.
 
+## Before you start
+
+If `models.byPhase.design` names a model and this session is on a different
+one, say so once and ask — see `references/models.md` at the plugin root. The
+ticket interview is where a wrong decision is most expensive, because a badly
+framed ticket is not caught by tests; it is built correctly and then rewritten.
+
 ## Stage 1 — The user story, and only the user story
 
 ### Interrogate the idea first
@@ -174,6 +181,28 @@ mistake that list exists to prevent. Say so when you escalate:
 Record it in the ticket body so the decision survives into whatever session
 picks the work up. **This plugin does not switch models.** Say which and why,
 and note that the human switches with `/model` before starting.
+
+**Then ask, unless `models.confirm` says otherwise.** The suggestion is an
+efficiency guess, and a weak model fixing code costs far more than the tokens
+it saves. State the reasoning so the answer is informed rather than reflexive:
+
+> **Model: `claude-sonnet-5`** for implementation — moderate complexity, and
+> the failure mode here is loud (a wrong total is visible in the output rather
+> than silent). Opus if you would rather not risk it; Haiku would be a stretch
+> because the rounding interacts with the tier boundaries.
+>
+> Happy with Sonnet, or pick another?
+
+With `confirm: "escalations-only"`, ask only when `escalateOn` forced a tier
+up. With `never`, record and move on.
+
+Do not confuse the tests with a safety net here. **A predefined test plan
+stops a weak model narrowing the scope, because the criteria were agreed by a
+stronger one — but a green suite does not prove the implementation is good.**
+A test can be written tautologically, an implementation can special-case the
+exact inputs under test, and neither shows up as a failure. The red→green
+discipline makes both harder, not impossible. That is why this question is
+worth a sentence of the user's attention rather than a silent default.
 
 ### Check the story is actually buildable
 

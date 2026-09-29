@@ -14,6 +14,11 @@ of the taxonomy and the backlog slowly stops answering questions.
 Requires a `taxonomy` block in the config. Without one there is nothing to
 check against, so say so and stop.
 
+## 0. The model for this phase
+
+Triage is reading and labelling, so it is the cheapest phase to run small. If
+`models.byPhase.triage` names one, mention it once per `references/models.md`.
+
 ## 1. Find the gaps
 
 Four checks, in the order they matter. Report counts first, so the size of the
