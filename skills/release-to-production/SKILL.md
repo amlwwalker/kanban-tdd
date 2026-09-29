@@ -5,7 +5,31 @@ description: Ship verified work to production by opening and merging a PR from t
 
 # Release to production
 
-The card reaching Done is the authorisation. Nothing else is.
+A human's verification is the authorisation. Nothing else is.
+
+## 0. Which promotion is this?
+
+Read `project.columns`. Two shapes, and they gate differently.
+
+**One integration environment** (`inReview` configured, no `readyForProd`).
+One promotion: integration to production. The gate is the card reaching
+`done` — a human ticked the checklist.
+
+**PR per environment** (`pushedToStaging` and `readyForProd` configured). Two
+promotions, and this skill handles both:
+
+| Promotion | Carries | On merge |
+|---|---|---|
+| integration → staging | everything merged since the last one | each card to `pushedToStaging` |
+| staging → production | **only** cards in `readyForProd` | each card to `done`, issue closed |
+
+The second row is the point of the extra columns. **A human moves a card to
+`readyForProd` after testing it on staging**, and a production PR carries only
+those. A ticket nobody verified cannot ride along with somebody else's
+release, which is what a single review column cannot prevent.
+
+If some cards on staging are not in `readyForProd`, say which and stop. The
+answer is usually "test them, or wait" — not "ship them anyway".
 
 ## 1. Verify the authorisation is real
 
@@ -78,17 +102,41 @@ gh pr merge --merge          # a merge commit, not a squash
 subsequent `production..integration` diff is wrong and the next release cannot
 be read.
 
-## 6. Afterwards
+**This is the one place `Closes` is legitimate.** Feature PRs use `Refs` so
+the board does not drop to Done before the work ships. A production promotion
+is the moment the work is genuinely finished, so its body closes every ticket
+it carries:
 
-Comment on each shipped issue that it is in production, with the PR link.
+```
+Closes #12
+Closes #15
+```
+
+A promotion PR also carries a **Rollback** section — what to do if this turns
+out badly, written before it is needed rather than during an incident.
+
+## 6. Afterwards — batched across every ticket
+
+The promotion carried several tickets, so every board move and comment happens
+for each of them, not just the one that prompted the release.
+
+**Integration → staging:** move each card to `pushedToStaging` and comment with
+the promotion PR link. Then say plainly that these are **waiting on a human**:
+somebody tests each on staging and moves it to `readyForProd`, and nothing
+reaches production until they do.
+
+**Staging → production:** move each card to `done`, comment "Released to
+production" with the PR link, and close the issue.
 
 Leave the cards in Done — Done means verified and shipped; there is no further
 column, and inventing one would mean two places to look.
 
 ## What this skill will not do
 
-- Move a card to Done.
-- Release anything whose card is not in Done, without the human explicitly
-  saying so after being shown what is unverified.
+- Move a card to Done on any promotion but the final one to production.
+- Move a card to `readyForProd`. That is the human asserting they tested it on
+  staging, and it is the gate the whole flow rests on.
+- Release anything unverified without the human explicitly saying so after
+  being shown exactly what is unverified.
 - Squash the integration branch into production.
 - Force-push either branch.

@@ -30,6 +30,12 @@ stateDiagram-v2
     Done: Done
 ```
 
+On a PR-per-environment board the single `In review` step expands into three —
+`Pushed to Dev`, `Pushed to Staging`, `Ready to Push to Production` — and the
+last of those is a human-only gate: a production promotion carries only cards
+sitting in it. Read `project.columns` to see which flow this repo uses; the
+gates below are the same either way.
+
 | Transition | Gate | Who |
 |---|---|---|
 | → Backlog | User story agreed **first**, then technical design, criteria and test plan | `ticket-authoring` |
@@ -171,6 +177,10 @@ Work out the phase from evidence, in this order, and stop at the first match.
    the state machine above.
 
 4. **The user is reporting that a manual check failed?** → `verification-failed`.
+
+4b. **Asking to promote between environments?** → `release-to-production`. It
+   handles integration→staging as well as staging→production, and knows which
+   cards each may carry.
 
 5. **Nothing else matches** → phase 1. The story comes first: `ticket-authoring`
    opens with the user story and does not proceed to technical design until it

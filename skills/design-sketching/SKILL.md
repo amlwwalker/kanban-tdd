@@ -98,11 +98,44 @@ stays is the *why*, which a diagram cannot show.
 - **Not in a comment** as the only record. Comments scroll away; fold it into
   the body.
 
+## Mark where it breaks
+
+For a **bug** in a multi-step flow, the diagram's job is to let a reader point
+at the failure. A `Note` does that and a paragraph underneath does not:
+
+```mermaid
+sequenceDiagram
+    participant Stripe
+    participant Backend
+    participant Portal
+    Stripe->>Backend: checkout.session.completed
+    Backend->>Backend: read metadata.product
+    Note over Backend: BREAKS HERE. Platform API sessions carry no
+    Backend-->>Portal: no sale recorded
+```
+
+The ticket's diagram shows where it broke. A PR's diagram, if the flow
+changed, shows how it works now — so do not repeat the ticket's; link it.
+
+## Name participants as the team says them
+
+`Portal`, `Backend`, `Screener`, `Stripe` — not `PortalController` or
+`handleWebhook`. A diagram is a map for a reader who may not have the code
+open, and class names make it a second copy of the code rather than a view
+over it. Set `diagrams.participantNames` to `as-the-code-says-them` if your
+team genuinely prefers the other way.
+
 ## Check it renders
 
 Mermaid fails silently on GitHub — a syntax error shows as a blank block or raw
-text, and nobody tells you. After creating or editing an issue, open it and
-look.
+text, and nobody tells you.
+
+When `diagrams.validateWith` is `mermaid-mcp`, **validate before posting**.
+Only the `valid` field of the result matters; it also carries a rendered image,
+which is large and can be ignored. If the tool is not available in the session,
+say so and fall back to looking — do not silently skip the check.
+
+Otherwise: after creating or editing an issue, open it and look.
 
 Common breakages: unquoted text containing `(`, `)`, `:` or `,` in a node label
 (quote the whole label); `end` as a node id in a flowchart (reserved);

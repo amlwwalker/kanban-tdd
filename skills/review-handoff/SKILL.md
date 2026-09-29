@@ -9,6 +9,53 @@ description: Move an implemented feature to In review — run every suite and CI
 of the integration branch, not about your intentions — so the card moves last,
 after the code is genuinely there.
 
+## 0. Preflight — always, and first
+
+The cheapest step, and it catches the most expensive mistake: adding commits
+to a branch whose PR already merged. They land on the branch, never reach the
+base, the tests still pass, and the work looks done when it is not.
+
+```bash
+BRANCH="$(git branch --show-current)"
+gh pr list --head "$BRANCH" --state all --json number,state,mergedAt,baseRefName,url
+```
+
+| Result | Meaning | Do |
+|---|---|---|
+| `[]` | No PR yet | Continue. This will be a new one. |
+| `OPEN` | Live PR | Continue. Pushing updates it. Do not open a second. |
+| `MERGED` | **Already shipped** | **STOP.** Recovery below. |
+| `CLOSED` | Rejected or abandoned | **STOP.** Ask whether to reopen or start fresh. |
+
+Also refuse to work directly on a protected branch — the integration or
+production branch from the config, or anything the remote protects.
+
+### Recovery when the PR already merged
+
+Find what is genuinely unshipped:
+
+```bash
+git fetch origin <integration>
+git log origin/<integration>..HEAD --oneline
+```
+
+**Nothing listed** — the branch is fully merged and there is no new work.
+Start a new branch from the integration branch for whatever comes next.
+
+**Commits listed** — that work is stranded and needs a new branch and a new
+PR:
+
+```bash
+git fetch origin <integration>
+git checkout -b <new-branch> origin/<integration>
+git cherry-pick <the stranded commits>
+```
+
+Tell the user plainly before doing any of it: which PR already merged, which
+commits are stranded, and that a second PR is needed. The new PR references
+the **same ticket**. Two PRs against one ticket is fine and honest; quietly
+pushing to a merged branch is not.
+
 ## 1. Read the ticket first
 
 ```bash
@@ -82,9 +129,44 @@ gh pr create --base <integration> --head "$(git branch --show-current)" \
   --body-file <path>
 ```
 
-The body carries: `Closes #<issue>`, one paragraph on what changed and why, the
-test inventory table, and the red→green SHA pairs. Add a Mermaid diagram only
-if the implementation diverged from the ticket's — otherwise link the ticket.
+**Reference the ticket as `Refs #<issue>`, not `Closes`, whenever the board has
+a column after this one.** `Closes` auto-closes the issue when the PR merges,
+which drops the card to Done before the work has reached production — and Done
+is what authorises a release. Only the final promotion to production uses
+`Closes`, and that belongs to `release-to-production`.
+
+On a two-column flow where merging to the integration branch *is* the last
+step before verification, `Closes` is still wrong for the same reason: the
+human has not tried it yet.
+
+The body carries: `Refs #<issue>`, one paragraph on what changed and why, and
+both of these sections, always:
+
+```markdown
+## Automated tests
+
+<which test files were added or extended, what they assert, and the suite
+ result — e.g. `npm test` -> 17 passed. Name any pre-existing failures so they
+ are not attributed to this PR.>
+
+## Manual acceptance checklist
+
+- [ ] <one concrete action, one expected outcome>
+- [ ] <the bug's original repro case, for a fix>
+- [ ] <anything nearby this change could have regressed>
+```
+
+**Refuse to open the PR if the manual checklist is empty or generic.** It is
+the acceptance gate. "Test the feature works" is not a checklist item, and if
+you cannot write concrete ones you do not understand the change well enough to
+ship it.
+
+When the config marks build config or setup scripts as security-sensitive and
+this branch touched any, **call that out on its own line in the PR body** so a
+reviewer cannot miss it.
+
+Add a Mermaid diagram only if the implementation diverged from the ticket's —
+otherwise link the ticket.
 
 ## 8. Wait for CI, then merge
 
@@ -126,9 +208,16 @@ knows what to re-check rather than re-running the whole checklist blind.
 
 ## 10. Now move the card
 
+Which column depends on the flow the config describes:
+
 ```bash
-ghboard move <issue> inReview
+ghboard move <issue> inReview        # one integration environment
+ghboard move <issue> pushedToDev     # PR-per-environment flow
 ```
+
+Use `pushedToDev` when it is configured, `inReview` otherwise. On the
+PR-per-environment flow this card is **not** finished review — it has reached
+the first environment, and `release-to-production` carries it onward.
 
 Last, deliberately. The card now says something true: it is on the integration
 branch and can be tried.
