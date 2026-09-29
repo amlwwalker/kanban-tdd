@@ -569,6 +569,9 @@ rather than assuming:
 | `logging` | sink, call pattern, levels, never-log | **Tickets say what a feature logs, at what level** |
 | `apiConventions` | error shape, status codes, PUT/PATCH | Design sections are checked against one contract |
 | `testers` | names | Sign-off has an owner, not a blank checkbox |
+| `complexity` | levels, and what makes work land there | How hard to get right, judged separately from how much there is |
+| `models` | complexity → model, plus escalation subjects | Each ticket records which model should implement it |
+| `epics` | when to split, and how | A big ticket becomes real GitHub sub-issues that can be worked in parallel |
 | `diagrams` | when required, how validated | `Note over X: BREAKS HERE` on bug diagrams |
 | `style` | British/American, em dashes | Applied to every word written into a ticket |
 
@@ -594,6 +597,55 @@ gets built, instead of being remembered at review. From a real run:
 
 That third line came from the config's honest note that nothing is sanitised.
 A policy that admits its gaps is more useful than one that implies none.
+
+### Size, complexity, and which model
+
+Size and complexity come apart constantly, and conflating them is how a subtle
+change gets handed to whoever is free:
+
+| | Low complexity | High complexity |
+|---|---|---|
+| **Small** | a copy fix, a config flag | a concurrency invariant, an auth check |
+| **Large** | a mechanical rename across 200 files | a migration with a rollback path |
+
+**Size drives scheduling. Complexity drives who — or what — should do it.**
+With a `models` block, each ticket records the model its complexity calls for,
+and `escalateOn` overrides upward for subjects where a cheap model is a bad
+bet regardless: security, auth, data migrations, concurrency.
+
+From a real run, four children of one epic:
+
+| Child | Size | Complexity | Model |
+|---|---|---|---|
+| Issue and validate promo codes | M | moderate | `claude-sonnet-5` |
+| Apply a promo to a priced cart | **S** | **hard** | **`claude-opus-5`** |
+| Redeem a code and enforce limits | M | moderate | `claude-sonnet-5` |
+| Report redeemed codes | S | trivial | `claude-haiku-4-5` |
+
+The second row is the point: small, but a wrong discount fails silently, so it
+gets the expensive model. A size-only system sends that one to Haiku.
+
+The plugin **records** the choice on the ticket; it never switches models. You
+switch with `/model` before starting.
+
+### Epics
+
+When a ticket is too big to be one ticket, it becomes a parent with **native
+GitHub sub-issues** — a real parent link with GitHub's own completion
+tracking, not a checklist of links.
+
+The `splitWhen` thresholds only start a conversation. The real test is whether
+two people could work different parts without treading on each other; a large
+ticket that is genuinely one coherent change stays one ticket.
+
+Each child is a normal ticket with the same gates — its own criteria bound to
+tests, its own red→green pairs, its own review. **An epic changes how work is
+grouped, not how it is built.** Children record what blocks them, so the
+genuinely independent ones can run concurrently, each with the model its
+complexity calls for.
+
+The parent never gets a branch, and `release-to-production` refuses to ship it
+while any child is open.
 
 ### How many columns?
 
