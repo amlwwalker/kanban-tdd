@@ -8,6 +8,9 @@ it will not write code before a ticket exists, will not design before you
 have agreed the user story, will not commit a test it has not watched fail,
 and will not mark anything done — that one is always yours.
 
+**[See a full walkthrough →](WALKTHROUGH.md)** — one ticket from idea to
+production on a real board, with screenshots.
+
 ---
 
 ## What it actually feels like
