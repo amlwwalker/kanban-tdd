@@ -60,8 +60,10 @@ Go down the criteria and find each one in the test plan. An orphaned criterion
 is the most common defect in an otherwise complete ticket: it reads fine, and
 nothing will ever prove it. Name the orphans specifically.
 
-**Does the test plan name real suites?** The tags must match keys in
-`tests` in the config. Every `[manual]` needs a justification — see
+**Does the test plan name real suites?** Every tag must be a key from `tests`
+in the config, or `[manual]`. A tag naming a framework (`[vitest]`) where the
+config calls the suite something else (`unit`) is wrong even though it reads
+fine, because `review-handoff` checks the inventory against these tags. Every `[manual]` needs a justification — see
 `manual-test-design`. A plan that is all manual usually means nobody worked out
 how to test it.
 

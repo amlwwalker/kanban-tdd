@@ -67,11 +67,12 @@ assumed. If one is missing, say how it is handled — split, stub, or cut.>
 ## TDD test plan
 
 <Each line: suite tag, the acceptance criterion it proves, the behaviour.
-Every acceptance criterion below must appear at least once here.>
+The tag is a KEY from `tests` in workflow.config.json, or `manual` — not a
+framework name. Every acceptance criterion below must appear at least once.>
 
-- [go]     AC1 · <behaviour>
-- [vitest] AC2 · <behaviour>
-- [manual] AC3 · <behaviour> — <why this cannot be automated>
+- [<suite-key>] AC1 · <behaviour>
+- [<suite-key>] AC2 · <behaviour>
+- [manual]      AC3 · <behaviour>. <why this cannot be automated>
 
 ## Acceptance criteria
 

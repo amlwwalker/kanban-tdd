@@ -247,13 +247,21 @@ description empty` is.
 ### The TDD test plan — bound to the criteria
 
 The tests you will write, before you write them. One line each, tagged with the
-suite, and **each one naming the acceptance criterion it proves**:
+suite, and **each one naming the acceptance criterion it proves**.
+
+**The tag is a key from `tests` in the config, not a framework name.** Read
+them first — `jq -r '.tests | keys[]' .claude/workflow.config.json` — and use
+those exactly, plus `[manual]`. A plan tagged `[vitest]` against a config whose
+suite is called `unit` names a suite that does not exist, and `review-handoff`
+checks its inventory against this plan.
+
+So for a config with `backend` and `frontend` suites:
 
 ```
-- [go]     AC1 · rejects a blank name with 422
-- [go]     AC2 · PUT resets fields the body omits
-- [vitest] AC3 · PATCH body omits unticked fields
-- [manual] AC4 · the console shows the reset field as blank in the table
+- [backend]  AC1 · rejects a blank name with 422
+- [backend]  AC2 · PUT resets fields the body omits
+- [frontend] AC3 · PATCH body omits unticked fields
+- [manual]   AC4 · the console shows the reset field as blank in the table
 ```
 
 **Every acceptance criterion must have at least one test.** A criterion with no
