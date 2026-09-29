@@ -533,6 +533,67 @@ which is why there is no competing `tdd` here.
 
 ---
 
+## Opinionated, but not about your company
+
+The workflow has strong opinions about *process* — a ticket before code, a red
+commit before a green one. It has none about your stack, your labels, your log
+levels or your error shape. Those are yours, and `/board-setup` asks for them
+rather than assuming:
+
+| Block | Records | Changes what |
+|---|---|---|
+| `taxonomy` | type / service / area labels | Every ticket is classified; service is inferred from the git remote |
+| `priority` | levels **and what each means**, a default | Tickets carry a priority with the reasoning stated |
+| `size` | values, anchored to real tickets | How big, kept separate from how urgent |
+| `logging` | sink, call pattern, levels, never-log | **Tickets say what a feature logs, at what level** |
+| `apiConventions` | error shape, status codes, PUT/PATCH | Design sections are checked against one contract |
+| `testers` | names | Sign-off has an owner, not a blank checkbox |
+| `diagrams` | when required, how validated | `Note over X: BREAKS HERE` on bug diagrams |
+| `style` | British/American, em dashes | Applied to every word written into a ticket |
+
+**All optional.** Omit the lot and v0.2 behaves exactly like v0.1. A solo
+project is never asked about taxonomy.
+
+The `logging` block is the one that changes the most. Once it exists,
+`ticket-authoring` asks of every feature *what does this log, at what level,
+and what must it never log* — and the answer lands in the ticket, where it
+gets built, instead of being remembered at review. From a real run:
+
+```markdown
+### Logging
+
+- `WARN` when a greeting is served without a name: log the locale used, via
+  the house pattern, so nameless greetings show up in a query rather than
+  passing silently.
+- Never logged: the visitor's name. It is user content, and the project's
+  never-log list names it explicitly.
+- This project redacts nothing automatically, so the WARN line must be built
+  without user content at source.
+```
+
+That third line came from the config's honest note that nothing is sanitised.
+A policy that admits its gaps is more useful than one that implies none.
+
+### How many columns?
+
+Four phases are fixed: `backlog`, `ready`, `inProgress`, `done`. What sits
+between the last two depends on how you ship, and `/board-setup` asks it that
+way — *do you open a PR per environment, or merge once and deploy from there?*
+
+**One integration branch** → one review column. The common case.
+
+**A PR per environment** → `pushedToDev`, `pushedToStaging`, `readyForProd`.
+The third earns the other two: a human moves a card to `readyForProd` after
+testing it on staging, and **a production promotion carries only those cards**.
+A half-tested ticket cannot ride along with somebody else's release, which is
+the failure a single review column cannot prevent.
+
+Related: feature PRs use `Refs #12`, never `Closes`. `Closes` drops the card
+to Done the moment the PR merges — before a human has tried it, and Done is
+what authorises a release. Only the final production promotion uses `Closes`.
+
+---
+
 ## The skills
 
 You will rarely name these. They fire from what you say.
@@ -541,14 +602,16 @@ You will rarely name these. They fire from what you say.
 |---|---|---|
 | `feature-workflow` | Anything ambiguous; "what's next" | Routes to the right phase |
 | `board-setup` | `/board-setup` | One-time per-repo config |
-| `ticket-authoring` | You describe a feature | Story gate, then the ticket |
+| `standards-init` | `/standards-init` | Interviews for your engineering standards, writes CLAUDE.md |
+| `ticket-authoring` | You describe a feature | Story gate, classification, then the ticket |
 | `ticket-refinement` | "is #7 ready", "I commented" | Verdict; promotes on your go |
+| `triage` | "sweep the backlog", "what's unlabelled" | Finds tickets the taxonomy missed |
 | `red-green` | "implement", "resume" | The loop, and the commit evidence |
 | `design-sketching` | A lifecycle or sequence needs a picture | Mermaid that renders on GitHub |
 | `manual-test-design` | Planning coverage | What needs a human, and the steps |
 | `review-handoff` | "this is done" | Green → PR → checklist → In review |
 | `verification-failed` | "step 3 failed" | Records, labels, sends the card back |
-| `release-to-production` | "ship it" | Integration → production |
+| `release-to-production` | "ship it", "promote to staging" | Integration → staging → production |
 
 ---
 
@@ -683,6 +746,13 @@ say which are outstanding — deferred, not skipped.
 
 The seam vocabulary and the vertical-slice / tracer-bullet rules are adapted
 from [Matt Pocock's skills](https://github.com/mattpocock/skills) (MIT).
+
+The four-dimensional taxonomy, priority-with-stated-reasoning, the
+`readyForProd` release gate, the `Refs` versus `Closes` rule, the merged-PR
+preflight and the `BREAKS HERE` diagram convention come from the Hiway
+engineering standards, written by Adam Greenwood after a supply-chain
+incident. Their Hiway-specific values are not bundled: every one of those
+shapes is a question `/board-setup` asks.
 
 ## License
 
