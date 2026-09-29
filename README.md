@@ -59,6 +59,20 @@ gh auth refresh -s project
 brew install jq            # or your package manager
 ```
 
+**Recommended companion**, not required — [Matt Pocock's
+skills](https://github.com/mattpocock/skills), which this plugin was built
+against and delegates its thinking to:
+
+```
+claude plugins install mattpocock-skills
+```
+
+It covers all four delegated jobs: design interviews (`grilling`), TDD
+discipline (`tdd`), ticket slicing (`to-tickets`) and code review. Without it
+the workflow still runs — `superpowers` covers two of the four, and there are
+built-in fallbacks for the rest, just thinner. See
+[Bring your own thinking](#bring-your-own-thinking).
+
 Then, once per repository:
 
 ```
