@@ -59,6 +59,10 @@ gh auth refresh -s project
 brew install jq            # or your package manager
 ```
 
+**Already using the Hiway standards skills?** Remove the four that clash
+before installing, or two skills will compete for the same triggers:
+**[MIGRATING.md](MIGRATING.md)**.
+
 **Recommended companion**, not required — [Matt Pocock's
 skills](https://github.com/mattpocock/skills), which this plugin was built
 against and delegates its thinking to:
