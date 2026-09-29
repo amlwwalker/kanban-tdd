@@ -17,10 +17,15 @@
 #   ghboard add <issue>            put an issue on the board
 #   ghboard move <issue> <phase>   move a card
 #
-# `phase` is always a KEY from project.columns in workflow.config.json —
-# backlog, ready, inProgress, inReview, done — never the column's display
-# name. Rename a column on the board, change one line of config, and every
-# skill keeps working.
+# `phase` is always a KEY from project.columns in workflow.config.json, never
+# the column's display name. Rename a column on the board, change one line of
+# config, and every skill keeps working.
+#
+# Four keys are always present: backlog, ready, inProgress, done. What sits
+# between inProgress and done depends on how many environments you promote
+# through — `inReview` for a single integration environment, or the optional
+# `pushedToDev` / `pushedToStaging` / `readyForProd` trio for a PR-per-
+# environment flow. Only the declared ones are validated.
 #
 # Requires: gh (authenticated, with the `project` scope), jq.
 #
@@ -192,6 +197,20 @@ cmd_validate() {
       missing=$((missing + 1))
     fi
   done < <(jq -r '.project.columns | to_entries[] | [.key, .value] | @tsv' "$CONFIG")
+
+  # Say which flow the config describes, because a missing optional column is
+  # a choice and a missing required one is a bug, and they look identical in a
+  # list of ticks.
+  local optional_present=()
+  for k in inReview pushedToDev pushedToStaging readyForProd; do
+    [[ "$(jq -r --arg k "$k" '.project.columns[$k] // empty' "$CONFIG")" != "" ]] \
+      && optional_present+=("$k")
+  done
+  if (( ${#optional_present[@]} > 0 )); then
+    printf '  \033[2mreview flow: %s\033[0m\n' "${optional_present[*]}"
+  else
+    warn "no review column configured — work goes from inProgress straight to done"
+  fi
 
   if (( missing > 0 )); then
     die "$missing configured column(s) missing.

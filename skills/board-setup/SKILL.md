@@ -89,13 +89,46 @@ gh project field-list <number> --owner <owner> --format json \
   | jq -r '.fields[] | select(.name=="Status") | .options[].name'
 ```
 
-Map each to a phase key — `backlog`, `ready`, `inProgress`, `inReview`, `done`.
-The five phases are fixed; their display names are not. A board calling them
-"Icebox / Up next / Building / Testing / Shipped" works fine.
+Four phase keys are always needed — `backlog`, `ready`, `inProgress`, `done`.
+Their display names are yours: a board calling them "Icebox / Up next /
+Building / Shipped" works fine.
 
-If the board has fewer than five columns, say which phase has nowhere to live
-and offer to add it. Do not silently collapse two phases into one — the gates
-between them are the process.
+What sits **between `inProgress` and `done`** is the one real choice here, and
+it follows from how the team ships rather than from the board. Ask it that way:
+
+> **Do you open a PR per environment, or merge once and deploy from there?**
+>
+> **(a) One integration branch.** Work merges to `dev`, a human tries it there,
+> and production follows. One review column, `inReview`. This is the common
+> case and the default.
+>
+> **(b) A PR per environment** — `dev`, then `staging`, then production. Three
+> columns: `pushedToDev`, `pushedToStaging`, `readyForProd`.
+
+Option (b) earns its extra columns through `readyForProd` specifically. **A
+human moves a card there after testing it on staging, and a production
+promotion PR carries only cards sitting in that column.** That stops a
+half-tested ticket riding along with somebody else's release, which is the
+failure a single review column cannot prevent. Say that when offering it —
+otherwise (b) reads as more admin for no gain.
+
+Both may coexist if the board genuinely has all four. Declare only the columns
+that exist; `ghboard validate` checks the declared ones and reports which flow
+the config describes.
+
+If a needed column is missing from the board, say which phase has nowhere to
+live and offer to add it. Do not silently collapse two phases into one — the
+gates between them are the process. Adding a Status option:
+
+```bash
+# Read the field id first, then add options with the GraphQL mutation.
+gh project field-list <number> --owner <owner> --format json \
+  | jq -r '.fields[] | select(.name=="Status") | .id'
+```
+
+Note that `updateProjectV2Field` replaces the whole option list, so include the
+existing options alongside the new ones or you will delete columns that have
+cards in them.
 
 **Branches.** Propose `production` = the repo's default branch, `integration` =
 `dev` if it exists. If there is no integration branch, say plainly that the
@@ -167,6 +200,113 @@ if not, omit the key entirely rather than writing a placeholder.
 honest and fine — manual checklists will say the URL is unknown rather than
 writing "open dev".
 
+## 3b. The optional blocks — ask only what earns its place
+
+Everything above is needed for the workflow to run. What follows is not, and a
+solo project on one repo should never be asked about most of it. **Offer the
+whole set in one line and let them pick**, rather than walking through seven
+interviews nobody asked for:
+
+> That is enough to work. Five more things can be recorded, each optional —
+> say which, if any, are worth it here:
+>
+> - **Ticket classification** — type / service / area labels, so a tracker with
+>   more than a handful of tickets stays filterable. Worth it once more than
+>   one repo or more than two people file tickets.
+> - **Priority and size** — as project fields, with definitions.
+> - **Named testers** — a sign-off checkbox per person on every ticket.
+> - **Logging and API conventions** — so a ticket's design says what a feature
+>   logs and which error shape it returns, rather than that being remembered at
+>   review. The biggest one, and the one most worth doing on a backend.
+> - **House style** — British or American, em dashes, anything else.
+
+Take only the ones they pick. For each, the questions:
+
+**Ticket classification.** Types first — offer `bug`, `feature`, `task`,
+`security`, `docs`, `idea` and ask which exist as labels on their tracker
+today. Where a label does not exist, record `null` rather than inventing one:
+the skill will put the type in the title and say so, which is honest, whereas
+`gh label create` as a side effect of filing a ticket is not.
+
+Services next. Read the repos they file from and propose a map from repo name
+to service name. **This is inferred from the current repo's git remote at
+ticket time**, which removes the commonest source of mislabelling — so the map
+matters more than it looks. Ask about areas last; they span services by design
+and many teams have none.
+
+**Priority.** Ask for the field name, then the levels **and what each means**.
+Push back on definitions that cannot be disagreed with: "high" is not a
+definition, "production down, data loss, or revenue blocked" is. Then ask for
+the default, and say why it matters:
+
+> Which level is the default? Make it a middle one. A default of the top level
+> is how every ticket becomes top priority and the field stops telling anyone
+> anything.
+
+**Size.** Only if they want it. Ask for an anchor per size — a real ticket
+number from their board. "Comparable to #237" is checkable; "medium" is not.
+
+**Testers.** Names, and GitHub logins if they want @-mentions.
+
+**Logging.** See section 3c — it is the longest and the most valuable.
+
+**API conventions.** Ask only on a project that serves an API: the error body
+shape as a literal example, which status for a validation failure versus a
+malformed body, whether internal errors leak any detail, and how partial
+update is expressed. Each answer becomes something `ticket-authoring` can
+check a design section against.
+
+**Style.** British or American; em dashes allowed or forbidden.
+
+## 3c. The logging interview
+
+Worth doing properly, because it is what turns logging from an afterthought
+into part of the design. Once recorded, `ticket-authoring` asks of every
+feature *what does this log, at what level, and what must it never log* — and
+`red-green` writes the real call instead of a bare `console.log`.
+
+Read the codebase first and propose from evidence rather than asking blind:
+
+```bash
+grep -rlE "winston|pino|bunyan|zap|logrus|slog|structlog|log4j" --include=package.json --include=go.mod --include=pyproject.toml . 2>/dev/null | head
+grep -rhoE "(logger|log)\.(debug|info|warn|error)\(" --include=*.ts --include=*.js --include=*.go --include=*.py . 2>/dev/null | sort | uniq -c | sort -rn | head -5
+```
+
+Then six questions, each with a proposal attached:
+
+1. **Where do logs end up so they can be queried later?** A hosted service, a
+   file, a collector — or nowhere, and they stay on the console. Null is a fine
+   answer and a better one than a guess. A log nobody can query after the fact
+   is not much use, and saying so is more useful than pretending otherwise.
+
+2. **What is the exact call?** One line, copied verbatim — `logger.info(msg,
+   ctx, meta)`, `this.logger.logInfo(message, context, meta)`, `slog.Info(msg,
+   "k", v)`. Skills copy this rather than inventing an idiom per file. If the
+   grep above found a dominant form, propose it.
+
+3. **What does each level mean here?** Teams genuinely disagree about where
+   INFO ends and DEBUG begins, so record their answer rather than a textbook
+   one. Offer as a starting point: DEBUG local diagnosis, off in production ·
+   INFO something happened that someone may later ask about · WARN recovered,
+   but a human should know · ERROR the operation failed.
+
+4. **What gets a log line as a matter of course?** API calls, user actions,
+   state changes, errors, slow requests. These become the design questions
+   `ticket-authoring` asks of any feature that touches them.
+
+5. **What must never be logged, at any level?** Propose tokens, passwords, full
+   JWTs, API keys, session cookies, card details, and anything read from a
+   credential file. Let them add.
+
+6. **What is sanitised automatically, and what is not?** Ask for the gaps
+   explicitly. "The backend redacts known fields, the frontend redacts nothing"
+   is the single most useful sentence a logging policy can contain, because it
+   tells everyone where care is actually required.
+
+If they decline the whole block, record nothing rather than a default. A
+logging policy nobody agreed to is worse than none: skills would cite it as
+though it were decided.
+
 ## 4. Write it
 
 **Read `references/workflow.config.schema.json` in this skill directory before
@@ -216,6 +356,50 @@ The exact skeleton, which every key below must match:
   "environments": { "dev": { "url": null } }
 }
 ```
+
+The optional blocks from 3b and 3c, when taken, sit alongside those at the top
+level. Include only the ones actually answered:
+
+```json
+{
+  "taxonomy": {
+    "typeLabels": { "bug": "type:bug", "feature": "type:feature", "task": null },
+    "serviceLabels": { "prefix": "svc:", "map": { "my-backend": "backend" } },
+    "areaLabels": { "prefix": "area:", "values": ["billing", "auth"] },
+    "titlePrefix": true
+  },
+  "priority": {
+    "field": "Priority",
+    "default": "P2",
+    "levels": { "P0": "Production down, data loss, security, or revenue blocked." },
+    "requireReasoning": true,
+    "securityIsAlways": "P0"
+  },
+  "size": { "field": "Size", "values": ["XS", "S", "M", "L"], "anchors": { "S": "like #237" } },
+  "testers": [ { "name": "Alex Walker", "github": "amlwwalker" } ],
+  "logging": {
+    "sink": "the hosted log service, or null if console only",
+    "callPattern": "logger.info(message, context, meta)",
+    "levels": { "INFO": "something happened someone may later ask about" },
+    "logByDefault": ["api-calls", "user-actions", "state-changes", "errors"],
+    "neverLog": ["tokens", "passwords", "full JWTs", "session cookies"],
+    "sanitisation": "backend redacts known fields; frontend redacts nothing"
+  },
+  "apiConventions": {
+    "errorShape": "{\"error\": \"...\", \"details\": {\"field\": \"...\"}}",
+    "statusCodes": { "validation": "422", "malformed": "400" },
+    "internalErrorsLeak": false,
+    "partialUpdate": "PATCH with pointer fields; PUT with plain values",
+    "listsAreNeverNull": true
+  },
+  "diagrams": { "validateWith": "none", "requiredWhen": ["crosses-service", "bug-in-multi-step-flow"] },
+  "style": { "english": "british", "emDashes": "forbidden" }
+}
+```
+
+A `null` in `typeLabels` is meaningful: the type exists as a concept but has no
+label on the tracker yet, so it goes in the title instead. Do not replace a
+`null` with an invented label.
 
 Note the shapes that are easy to get wrong: `tests` is an **object keyed by
 suite name**, not an array; each capability is an **object with a `provider`

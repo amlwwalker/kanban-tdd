@@ -52,12 +52,11 @@
         },
         "columns": {
           "type": "object",
-          "description": "Maps the workflow's internal phase names to the literal option names on the board. These are matched EXACTLY, case included. `ghboard validate` reads the live options and fails if any value here is missing, rather than silently creating a duplicate column.",
+          "description": "Maps the workflow's internal phase names to the literal option names on the board. Matched EXACTLY, case included. `ghboard validate` reads the live options and fails if a configured column is missing, rather than silently creating a duplicate.\n\nFour are required: backlog, ready, inProgress, done. Everything between inProgress and done depends on how many environments you promote through. A two-branch project uses `inReview`. A project that opens a PR per environment uses `pushedToDev`, `pushedToStaging` and `readyForProd` instead, or alongside. Declare only the ones your board has.",
           "required": [
             "backlog",
             "ready",
             "inProgress",
-            "inReview",
             "done"
           ],
           "additionalProperties": false,
@@ -76,11 +75,23 @@
             },
             "inReview": {
               "type": "string",
-              "description": "Merged to the integration branch and awaiting human verification."
+              "description": "Merged to the integration branch and awaiting human verification. The simple case: one integration environment, one review gate. Omit it if you use the pushedTo* trio."
             },
             "done": {
               "type": "string",
               "description": "Verified by a human. Moving a card here is what authorises a release."
+            },
+            "pushedToDev": {
+              "type": "string",
+              "description": "Optional. Merged to the integration branch and deployed to a dev environment. Set by review-handoff."
+            },
+            "pushedToStaging": {
+              "type": "string",
+              "description": "Optional. Promoted from integration to staging. Set by release-to-production on the first promotion."
+            },
+            "readyForProd": {
+              "type": "string",
+              "description": "Optional, and the most valuable of the three. A HUMAN moves a card here after testing it on staging. A production promotion PR carries ONLY tickets sitting in this column, so a half-tested ticket cannot ride along with somebody else's release. Without it, promotion is all-or-nothing."
             }
           }
         }
@@ -214,6 +225,291 @@
           "note": {
             "type": "string"
           }
+        }
+      }
+    },
+    "taxonomy": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How tickets are classified. Four dimensions kept separate, because collapsing them into one flat label list is how a tracker stops being able to answer basic questions. Omit this block entirely on a small project: tickets still work, they are just untyped.",
+      "properties": {
+        "typeLabels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Exactly one per ticket, never optional. Maps a kind of work to the label your tracker uses. A null value means the label does not exist yet: the skill puts the type in the title instead and says so, rather than filing a silently untyped ticket or inventing a label as a side effect. Suggested keys: bug, feature, task, security, docs, idea."
+        },
+        "serviceLabels": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Which service or component a ticket concerns. Inferred from the current repo's git remote, which removes the commonest source of mislabelling. Where the remote is not in the map, the skill ASKS rather than guessing.",
+          "properties": {
+            "prefix": {
+              "type": "string",
+              "default": "svc:",
+              "description": "Prepended to each value, so service labels sort together in the picker."
+            },
+            "map": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Repo name (as `gh repo view` reports it, without the owner) to service name. Two repos may map to one service."
+            }
+          }
+        },
+        "areaLabels": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Product areas. Zero or more per ticket, and they span services by design: a billing bug can touch three repos at once.",
+          "properties": {
+            "prefix": {
+              "type": "string",
+              "default": "area:"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "titlePrefix": {
+          "type": "boolean",
+          "default": true,
+          "description": "Put `[service]` and, where the label is missing, `[type]` at the front of the title. Carries the classification even for dimensions that have no label yet."
+        }
+      }
+    },
+    "priority": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Priority belongs in a project FIELD, never a label — a label cannot be sorted on and invites one per ticket. Omit this block and priority is simply not set.",
+      "properties": {
+        "field": {
+          "type": "string",
+          "default": "Priority",
+          "description": "Name of the single-select project field."
+        },
+        "default": {
+          "type": "string",
+          "description": "Applied when nothing else decides. Make it a middle value. A default of the top level is how every ticket becomes top priority and the field stops carrying information."
+        },
+        "levels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Level name to what it MEANS, in terms someone can disagree with. 'High' is not a definition; 'production down, data loss, or revenue blocked' is."
+        },
+        "requireReasoning": {
+          "type": "boolean",
+          "default": true,
+          "description": "The ticket body states why this level and not the one above or below. Makes the choice auditable, and gives a human something specific to argue with."
+        },
+        "securityIsAlways": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Level forced on anything typed security. Null to disable."
+        }
+      }
+    },
+    "size": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How much work, which is independent of how urgent. A one-line fix can be top priority and a three-week feature can be bottom. Omit to skip sizing.",
+      "properties": {
+        "field": {
+          "type": "string",
+          "default": "Size"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "anchors": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Size to a concrete example from your own board. An anchor beats an adjective: 'comparable to #237' is checkable, 'medium' is not."
+        }
+      }
+    },
+    "testers": {
+      "type": "array",
+      "description": "People who sign off manual verification. Rendered as a named checkbox block on every ticket, so sign-off has an owner rather than being anonymous. Omit for a solo project.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "github": {
+            "type": "string",
+            "description": "Login, for @-mentioning. Optional."
+          }
+        }
+      }
+    },
+    "diagrams": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Mermaid renders natively in GitHub issues and PR bodies, so a diagram costs nothing to read and a great deal to leave out when a flow crosses a boundary.",
+      "properties": {
+        "validateWith": {
+          "enum": [
+            "mermaid-mcp",
+            "none"
+          ],
+          "default": "none",
+          "description": "`mermaid-mcp` validates every diagram before it is posted. A broken fence renders as an error box that nobody notices until a reader hits it. `none` means open the issue and look."
+        },
+        "requiredWhen": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "crosses-service",
+              "bug-in-multi-step-flow",
+              "lifecycle",
+              "schema-change"
+            ]
+          },
+          "description": "Situations where a diagram is not optional. Everything else is a judgement call, and the default answer is no diagram."
+        },
+        "participantNames": {
+          "type": "string",
+          "enum": [
+            "as-the-team-says-them",
+            "as-the-code-says-them"
+          ],
+          "default": "as-the-team-says-them",
+          "description": "Name participants the way the team talks about them (Portal, Backend, Stripe) rather than by class or function name."
+        }
+      }
+    },
+    "style": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "House style for anything a person reads: tickets, PR bodies, UI copy, error messages.",
+      "properties": {
+        "english": {
+          "enum": [
+            "british",
+            "american"
+          ],
+          "default": "british"
+        },
+        "emDashes": {
+          "enum": [
+            "allowed",
+            "forbidden"
+          ],
+          "default": "allowed",
+          "description": "When forbidden, rewrite as two sentences. Applies inside diagram labels too."
+        },
+        "extra": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Any further house rules, one per line, applied to generated prose."
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What this project logs, how, and what it must never log. Recorded here so that logging is a DESIGN question answered while the ticket is written, rather than something remembered at review. ticket-authoring asks what a feature logs and at what level; red-green writes the call using `callPattern` rather than a bare console.log.",
+      "properties": {
+        "sink": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Where logs end up so they can be queried after the fact: a hosted service, a file, a collector. Null means they stay on the console, which is a gap worth stating rather than a decision worth hiding."
+        },
+        "callPattern": {
+          "type": "string",
+          "description": "The exact call to write, verbatim, e.g. `this.logger.logInfo(message, context, meta)` or `log.info({ evt, ...meta })`. Skills copy this rather than inventing a logging idiom per file."
+        },
+        "levels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Level to what it means HERE. Teams disagree about where INFO ends and DEBUG begins, so state it: e.g. DEBUG 'local diagnosis, off in production', INFO 'a thing happened that someone may later ask about', WARN 'recovered, but a human should know', ERROR 'the operation failed'."
+        },
+        "logByDefault": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Categories that get a log line as a matter of course, e.g. api-calls, user-actions, state-changes, errors, slow-requests. ticket-authoring turns these into design questions for any feature that touches them."
+        },
+        "neverLog": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Never written to a log at any level: tokens, passwords, full JWTs, API keys, session cookies, card details, anything from a credential file."
+        },
+        "sanitisation": {
+          "type": "string",
+          "description": "What is scrubbed automatically and what is not. Be honest about the gaps — 'the backend redacts known fields, the frontend redacts nothing' is the single most useful sentence in a logging policy, because it tells you where care is required."
+        }
+      }
+    },
+    "apiConventions": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The contract every endpoint in this project keeps. Decided once here so it is not re-litigated per endpoint, and so a ticket's design section can be checked against it.",
+      "properties": {
+        "errorShape": {
+          "type": "string",
+          "description": "The JSON body of every error, as a literal example, e.g. `{\"error\": \"...\", \"details\": {\"field\": \"...\"}}`. One shape everywhere."
+        },
+        "statusCodes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Situation to status, for the ones teams disagree on: validation failure, malformed body, not found, unauthorised, conflict."
+        },
+        "internalErrorsLeak": {
+          "type": "boolean",
+          "default": false,
+          "description": "When false, internal errors are logged in full and returned as a bare message with no detail — and there is a test asserting nothing leaks."
+        },
+        "partialUpdate": {
+          "type": "string",
+          "description": "How partial versus full update is expressed, e.g. 'PATCH with pointer fields so absent is distinguishable from set-to-zero; PUT with plain values'. If you have one you almost certainly want both, and a test for each."
+        },
+        "listsAreNeverNull": {
+          "type": "boolean",
+          "default": true,
+          "description": "An empty collection serialises as [] rather than null."
+        },
+        "extra": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Further conventions: pagination, versioning, idempotency, naming."
         }
       }
     }
