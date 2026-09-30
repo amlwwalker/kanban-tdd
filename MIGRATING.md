@@ -66,16 +66,31 @@ ls ~/.claude/skills/
 
 Restart Claude Code so the skill list is re-read.
 
-## 4. Set up each repo
+## 4. Set up the repos
 
-Once per repository, including the tracker repo itself:
+If your repos live together in one folder — which is the usual Hiway layout —
+do the whole directory in one pass from the **parent**:
+
+```bash
+cd ~/dev/hiway
+```
+```
+/org-setup
+```
+
+It surveys every repo below, asks the shared questions once, and batches the
+one thing that genuinely differs per repo: the test command. It never invents
+one, so a repo with no test setup gets no `tests` block and is named in the
+report rather than given a command that fails on first use.
+
+For a single repo — or one that lives somewhere else — use:
 
 ```
 /board-setup
 ```
 
-It reads your live board rather than assuming, so it will pick up the seven
-columns the Hiway flow uses. Answer the questions with what the Hiway standards
+Either way it reads your live board rather than assuming, so it picks up the
+seven columns the Hiway flow uses. Answer the questions with what the Hiway standards
 already decided, and they become config rather than skill text:
 
 | Hiway had | Answer with |

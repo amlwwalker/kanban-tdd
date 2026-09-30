@@ -77,13 +77,26 @@ the workflow still runs — `superpowers` covers two of the four, and there are
 built-in fallbacks for the rest, just thinner. See
 [Bring your own thinking](#bring-your-own-thinking).
 
-Then, once per repository:
+Then point it at your work. **A whole folder of repos on one shared board:**
 
+```bash
+cd ~/dev/acme        # the folder holding them, not a repo itself
+```
+```
+/org-setup
+```
+
+**Or a single repository:**
+
+```bash
+cd ~/dev/acme/api
+```
 ```
 /board-setup
 ```
 
-That is the only slash command you ever need to type.
+That is the last slash command you need. After setup you never invoke a skill
+by name — you describe what you want, and the right one fires.
 
 ---
 
