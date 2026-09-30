@@ -14,6 +14,18 @@ Prompt-driven, not a script. Explore, present what you found, confirm, then
 write. Lead each question with a recommended answer so it can be accepted in a
 word, and skip any question exploration already settled.
 
+## 0. Is this one repo, or a folder of them?
+
+This skill configures **one repository**. If the working directory is not a
+git repository but contains several, say so and offer `/org-setup` instead:
+
+> There are 33 git repositories below here and this directory is not one
+> itself. `/org-setup` configures them all against one shared board, asking
+> the common questions once. Run that instead?
+
+Carry on here when it is a single repo, or when the user wants to configure
+just this one despite the siblings.
+
 ## 1. Check the tools
 
 ```bash

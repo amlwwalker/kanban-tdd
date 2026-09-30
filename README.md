@@ -241,33 +241,37 @@ anything up.
 
 ### A whole directory of repos
 
-There is no "apply to a folder" setting, and deliberately so: the board,
-branches and test commands belong to a repository, not to wherever it happens
-to sit on disk. But when thirty repos share one board, most of each config is
-identical and only the service name differs.
-
-Configure one properly, check it, then fan it out:
-
 ```bash
-cd ~/dev/acme/api
-# /board-setup, and confirm the result is right
-
-"$CLAUDE_PLUGIN_ROOT/scripts/apply-config" --from ~/dev/acme/api --to ~/dev/acme --dry-run
-"$CLAUDE_PLUGIN_ROOT/scripts/apply-config" --from ~/dev/acme/api --to ~/dev/acme
+cd ~/dev/acme        # the folder holding the repos, not a repo itself
+```
+```
+/org-setup
 ```
 
-It copies the shared half — board, branches, capabilities, priority, size,
-complexity, models, epics, style — and rewrites `taxonomy.serviceLabels` per
-repo from the **git remote**, not the folder name, since folders get renamed.
+It surveys every git repository below, groups them by stack, asks the shared
+questions **once** — board, columns, branches, taxonomy, priority, models —
+and asks only about what genuinely differs.
 
-It deliberately does **not** copy `tests`, `logging`, `apiConventions` or
-`environments`. A Go service and a React app do not share a test command, and
-writing one that fails on first use is worse than leaving it absent. Add those
-per repo with `/board-setup`, which extends an existing config rather than
-starting over.
+In practice that is one thing: the test command. It proposes those in groups
+rather than one repo at a time:
 
-Repos already configured are left alone, and one with no `origin` remote is
-skipped and named rather than guessed at.
+| Repos | Proposed |
+|---|---|
+| 12 node repos with `"test": "vitest"` | `npm test` |
+| 3 node repos with `"test": "jest …"` | `npm test` |
+| 2 go repos with a Makefile | `make test` |
+| 12 with nothing detected | **leave `tests` empty** |
+
+That last row matters. **It never invents a test command** — a config naming
+one that does not exist fails on first use and looks like the plugin is
+broken. It names those repos instead, so you can fill them in later.
+
+It also refuses to overwrite an existing config, skips repos with no `origin`
+remote by name, and reports which repos still need a human rather than
+printing a count and stopping.
+
+`/board-setup` still configures a single repo, and will point you here if you
+run it in a folder of them by mistake.
 
 ### One board, several repos
 
@@ -743,6 +747,7 @@ You will rarely name these. They fire from what you say.
 |---|---|---|
 | `feature-workflow` | Anything ambiguous; "what's next" | Routes to the right phase |
 | `board-setup` | `/board-setup` | One-time per-repo config |
+| `org-setup` | `/org-setup` | Configures a whole directory of repos against one board |
 | `standards-init` | `/standards-init` | Interviews for your engineering standards, writes CLAUDE.md |
 | `ticket-authoring` | You describe a feature | Story gate, classification, then the ticket |
 | `ticket-refinement` | "is #7 ready", "I commented" | Verdict; promotes on your go |
