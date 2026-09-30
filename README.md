@@ -239,6 +239,36 @@ Two deliberate choices worth knowing:
 the repo gets the same board, branches and test commands without setting
 anything up.
 
+### A whole directory of repos
+
+There is no "apply to a folder" setting, and deliberately so: the board,
+branches and test commands belong to a repository, not to wherever it happens
+to sit on disk. But when thirty repos share one board, most of each config is
+identical and only the service name differs.
+
+Configure one properly, check it, then fan it out:
+
+```bash
+cd ~/dev/acme/api
+# /board-setup, and confirm the result is right
+
+"$CLAUDE_PLUGIN_ROOT/scripts/apply-config" --from ~/dev/acme/api --to ~/dev/acme --dry-run
+"$CLAUDE_PLUGIN_ROOT/scripts/apply-config" --from ~/dev/acme/api --to ~/dev/acme
+```
+
+It copies the shared half — board, branches, capabilities, priority, size,
+complexity, models, epics, style — and rewrites `taxonomy.serviceLabels` per
+repo from the **git remote**, not the folder name, since folders get renamed.
+
+It deliberately does **not** copy `tests`, `logging`, `apiConventions` or
+`environments`. A Go service and a React app do not share a test command, and
+writing one that fails on first use is worse than leaving it absent. Add those
+per repo with `/board-setup`, which extends an existing config rather than
+starting over.
+
+Repos already configured are left alone, and one with no `origin` remote is
+skipped and named rather than guessed at.
+
 ### One board, several repos
 
 This is a first-class case, not a workaround. A board that tracks work across
