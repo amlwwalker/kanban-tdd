@@ -65,15 +65,134 @@ imagination problem rather than exhorting people to imagine harder.
 | File | Change |
 |---|---|
 | `skills/ticket-authoring/references/interview.md` | **New.** The three question banks. |
-| `skills/ticket-authoring/SKILL.md` | New stage 2 interview section; sign-off ask re-pointed at the tests. |
-| `skills/ticket-authoring/references/ticket-template.md` | `Failure modes`, `Input domains`, `Parity` sections; criteria moved above the test plan. |
+| `skills/design-docs/SKILL.md` | **New.** The appendix-document convention, anchor IDs, and the freshness rule. |
+| `skills/ticket-authoring/SKILL.md` | New stage 2 interview section; sign-off ask re-pointed at the tests; design docs written before the ticket. |
+| `skills/ticket-authoring/references/ticket-template.md` | Synopsis-and-table sections replacing inline detail; `Design docs` links. |
 | `skills/design-sketching/SKILL.md` | Coverage-diagram pattern with fixed hex colours. |
-| `skills/ticket-refinement/SKILL.md` | Three new checks in the step-2 ladder. |
+| `skills/ticket-refinement/SKILL.md` | Three new checks in the step-2 ladder, plus anchor resolution. |
+| `skills/red-green/SKILL.md` | Design-doc edit belongs in the green commit; `design:` comment convention. |
+| `skills/review-handoff/SKILL.md` | Anchor check in the handoff; doc-freshness question. |
+| `skills/review-handoff/scripts/design-anchors.sh` | **New.** Verifies every `design:` comment resolves to a real anchor. |
 
 The question banks go in a reference file rather than inline because
 `ticket-authoring/SKILL.md` is already 507 lines; three banks inline would push
 the skill's own structure past findability. `design-sketching` already
 establishes this pattern with `references/diagram-patterns.md`.
+
+## The ticket is a synopsis, not the document
+
+Rigour that nobody reads is worse than no rigour, because a rubber-stamped gate
+manufactures confidence. Three interview transcripts, a parity table, an
+input-domain matrix and a coverage diagram inline produce a ticket people
+scroll past.
+
+So the detail lives in `design-docs/` and the ticket carries a synopsis plus
+tables that link into it:
+
+```
+design-docs/
+  rfc/
+    0003-session-identity.md
+  features/
+    auth-email-normalisation.md     ← design + failure modes + input domains
+```
+
+On the ticket:
+
+```markdown
+## Design docs
+
+- [Email normalisation](../design-docs/features/auth-email-normalisation.md) — the design, all three interview axes, the coverage diagram
+
+## Failure modes
+
+6 identified, 4 covered. Full analysis in the design doc.
+
+| Mode | Covered | Criterion |
+|---|---|---|
+| blank name | yes | AC2 |
+| provider timeout | yes | AC4 |
+| concurrent write to one row | **no** | out of scope, pre-existing |
+```
+
+The human reads a table and follows a link when they want the argument. The
+coverage diagram stays **on the ticket** — it is the thing being signed off and
+it is already a summary.
+
+## Anchored links, in both directions
+
+Code and tests carry a comment naming the design section they implement:
+
+```go
+// design: design-docs/features/auth-email-normalisation.md [AUTH-3]
+func normaliseEmail(s string) string {
+```
+
+```markdown
+## Email normalisation {#AUTH-3}
+```
+
+**The anchor ID is stable and the heading text is not.** A plain
+`#email-normalisation` slug link breaks silently the moment someone retitles the
+heading: nothing fails, and the comment goes on reading as authoritative while
+pointing at nothing. An explicit `{#AUTH-3}` survives retitling, and — the part
+that matters — a script can verify it.
+
+`scripts/design-anchors.sh` greps every `design:` comment, resolves each against
+its document, and fails on a missing file or a missing anchor. It runs at the
+same gate as the test inventory, reusing that script's file-walking and
+config-reading. A broken link is therefore a handoff failure, not a discovery
+made months later by someone who trusted the comment.
+
+Anchor IDs are per-document and allocated in order (`AUTH-1`, `AUTH-2`). The
+prefix comes from the document, not the ticket, so a second ticket touching the
+same design adds `AUTH-7` rather than renumbering anything.
+
+## Keeping the docs true
+
+The freshness rule is enforced where the behaviour changes, not at a later
+audit:
+
+**In `red-green`.** The design doc is updated in the **same commit** as the
+behaviour that diverges from it. Same discipline as the red→green pair: it is
+visible in the diff and checkable afterwards. A green commit that changes
+behaviour the doc describes, without touching the doc, is the defect.
+
+**In `review-handoff`.** Two checks before the PR opens:
+
+1. `design-anchors.sh` passes — every `design:` comment resolves.
+2. If the diff changed behaviour under a `design:` comment and the referenced
+   document is untouched since the ticket was written, **ask**: is the document
+   still true?
+
+The second is a question rather than a hard failure, because a refactor can
+legitimately leave the design unchanged. But it is asked every time, and the
+answer goes in the handoff where a reviewer sees it.
+
+## Deferred: the design graph
+
+[Graphify](https://github.com/Graphify-Labs/graphify) already models exactly the
+structure this design creates — its markdown extractor emits a node per heading
+and a `heading --references--> code symbol` edge, `EXTRACTED` for a
+path-qualified mention and `INFERRED` for an unambiguous bare name. A codebase
+following this spec would graph well.
+
+It is deliberately **not** a dependency yet:
+
+- This plugin currently has no hard external dependencies. Every provider
+  resolves through `capabilities.md` with a built-in fallback, which is why it
+  works for someone with no other plugins installed. Graphify would be the
+  first thing that breaks when an external tool moves — and at 1,505 open
+  issues on a `v8` branch four weeks after its first commit, it is moving fast.
+- It rebuilds *the graph*, not the docs. It cannot tell you a document's claims
+  have stopped being true, which is the actual requirement here.
+- There is nothing to graph until design docs exist. This spec creates the
+  corpus; graphing it is a later question answered by whether navigation
+  actually hurts.
+
+When that question is answered, the shape is a `design-graph` capability —
+preferred provider `graphify`, no fallback, built-in "grep `design-docs/`" —
+following the existing pattern rather than hard-wiring anything.
 
 ## The three axes
 
@@ -263,9 +382,21 @@ rather than every input the feature accepts. That change is one sentence in
 
 ## Out of scope
 
-- No change to `red-green`. It consumes the test plan and does not care how the
-  plan got better.
-- No change to `review-handoff` or its inventory script. The plan's format is
-  unchanged — more lines, same shape.
-- No new config block, per the skip-rule decision above.
-- No change to the `comments.md` body-is-canonical model.
+- **No graphify dependency**, per the section above. Revisited after the test
+  application, as a `design-graph` capability.
+- **No change to `test-inventory.sh`.** The test plan's format is unchanged —
+  more lines, same shape. The anchor check is a sibling script, not an edit to
+  a working one.
+- **No new config block.** The skip rules carry proportionality instead, and a
+  default-off switch would leave the defect in place for anyone who never
+  configures it.
+- **No change to the `comments.md` body-is-canonical model.** Interview
+  transcripts post as comments; the agreed result is folded into the body and
+  the detail lives in `design-docs/`.
+- **No scheduled drift audit.** Freshness is enforced in the green commit and at
+  handoff. A periodic sweep would catch rot those miss, but drift found weeks
+  later is expensive to fix and the gate is the cheaper place.
+- **No comment-to-doc links in every file.** Only where a `design:` anchor
+  genuinely aids navigation — the convention is opt-in per symbol, because a
+  codebase where every function carries one is a codebase where none of them
+  are read.
