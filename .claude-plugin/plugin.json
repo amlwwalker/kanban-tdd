@@ -1,7 +1,7 @@
 {
   "name": "kanban-tdd",
-  "version": "0.3.0",
-  "description": "Ticket-driven development on a GitHub project board. Moves work through Backlog -> Ready -> In progress -> review -> Done, and makes each transition prove itself: a ticket before code, the user story agreed before the design, a red commit before a green one, a written manual test for anything only a human can check. Classification, priority, logging policy and API conventions are configured per project, not baked in. Delegates design interviews, TDD discipline and code review to whichever skills you already use.",
+  "version": "0.4.0",
+  "description": "Ticket-driven development on a GitHub project board. Moves work through Backlog -> Ready -> In progress -> review -> Done, and makes each transition prove itself: a ticket before code, the user story agreed before the design, failure modes and input domains interrogated before the acceptance criteria, a red commit before a green one, design docs kept true by the commit that changes behaviour, and browser screenshots as evidence on the ticket. Classification, priority, logging policy and API conventions are configured per project, not baked in. Delegates design interviews, TDD discipline and code review to whichever skills you already use.",
   "author": {
     "name": "Alex Walker",
     "url": "https://github.com/amlwwalker"
@@ -17,7 +17,10 @@
     "red-green",
     "tickets",
     "workflow",
-    "mermaid"
+    "mermaid",
+    "playwright",
+    "screenshots",
+    "design-docs"
   ],
   "skills": [
     "./skills/feature-workflow",

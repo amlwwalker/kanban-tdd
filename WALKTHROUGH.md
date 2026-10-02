@@ -8,6 +8,21 @@ and a seven-column GitHub project.
 The repo is a deliberately tiny cart-total library, so the interesting part is
 the *process* rather than the code.
 
+> **This run predates three later additions**, and the screenshots below show
+> the workflow without them. They are described in the README rather than
+> re-staged here, because re-shooting them would mean a walkthrough that is no
+> longer a single honest recording:
+>
+> - **The behavioural interview** — failure modes, input domains and parity
+>   walked before the criteria are written, so the test plan covers more than
+>   the happy path.
+> - **Design docs and anchors** — the detail lives in `design-docs/` with the
+>   ticket carrying a synopsis, and code links back by a verified ID.
+> - **Browser evidence** — screenshots captured at each width and published to
+>   the ticket.
+>
+> Everything shown below still happens, in the same order, at the same gates.
+
 ---
 
 ## Setup
