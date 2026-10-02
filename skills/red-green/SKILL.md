@@ -131,12 +131,39 @@ anticipating the next test on the plan. If you find yourself writing code no
 current test demands, stop: that code belongs to a later slice, and writing it
 now means it arrives untested.
 
-### 5. Run again, and commit the green
+### 5. Run again, and commit the green — with the doc
 
 ```bash
-git add -A
+git add -A        # the implementation AND any design-doc edit
 git commit -m "feat(green): <what it does>"
 ```
+
+**If the implementation diverged from what a design doc says, the doc is edited
+in this commit.** Not in a follow-up, not in a tidy-up pass, not in a ticket
+someone files and nobody picks up.
+
+Same reasoning as the red→green pair itself: it is visible in the diff and
+checkable afterwards by someone who was not there. Documentation rots because
+updating it is always someone's next task; attaching it to the commit that
+caused the divergence is the only version of this rule that survives contact
+with a deadline.
+
+A green commit that changes behaviour a document describes, without touching
+that document, is the defect. `git log -p design-docs/` is how anyone finds out
+whether this is actually happening.
+
+Where the behaviour you just wrote implements a non-obvious design decision —
+a normalisation, a rounding rule, a tie-break, a subtle regression test — add the
+anchor comment so the next reader can get from code to reasoning:
+
+```go
+// design: design-docs/features/auth-email-normalisation.md [AUTH-3]
+func normaliseEmail(s string) string {
+```
+
+Opt-in per symbol, not on everything. A codebase where every function carries one
+is a codebase where none are read. See the `design-docs` skill for anchor rules —
+IDs are never renumbered or reused, because a commit already points at them.
 
 ### 6. Repeat
 
@@ -159,6 +186,14 @@ means they are also what can be absent.
   passes, the evidence is a fiction.
 - **No test arrives in the same commit as its implementation.** That is the
   tell that TDD did not happen, and `review-handoff` checks for it.
+- **A design doc the work contradicts is edited in the green commit**, never
+  left for later. A documented behaviour and a shipped behaviour that disagree
+  is worse than no document, because people trust it once and then stop
+  trusting the folder.
+
+A design-doc edit is production-adjacent, so it belongs in the green commit, not
+the red one. A `design:` comment inside a test file is fine in the red commit —
+that file is still test-only.
 
 Verify at any point:
 

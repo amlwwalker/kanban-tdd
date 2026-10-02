@@ -38,10 +38,10 @@ gates below are the same either way.
 
 | Transition | Gate | Who |
 |---|---|---|
-| → Backlog | User story agreed **first**, then technical design, criteria and test plan | `ticket-authoring` |
-| Backlog → Ready | Every open question answered; criteria each verifiable | **human decides**, `ticket-refinement` advises |
+| → Backlog | User story agreed **first**, then the behaviour interrogated, then design, criteria and test plan | `ticket-authoring` |
+| Backlog → Ready | Every open question answered; criteria each verifiable and covering failure, not only success; **the human has signed off the test plan** | **human decides**, `ticket-refinement` advises |
 | Ready → In progress | A feature branch exists, cut from the integration branch | `red-green` |
-| In progress → In review | Every suite green, CI green, red→green pairs present, merged to integration | `review-handoff` |
+| In progress → In review | Every suite green, CI green, red→green pairs present, design docs true and their links resolving, merged to integration | `review-handoff` |
 | In review → Done | A human ticked every manual step | **human only** |
 | In review → In progress | A manual step failed | `verification-failed` |
 

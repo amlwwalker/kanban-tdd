@@ -29,6 +29,7 @@
     "./skills/triage",
     "./skills/red-green",
     "./skills/design-sketching",
+    "./skills/design-docs",
     "./skills/manual-test-design",
     "./skills/review-handoff",
     "./skills/verification-failed",

@@ -766,7 +766,8 @@ You will rarely name these. They fire from what you say.
 | `ticket-refinement` | "is #7 ready", "I commented" | Verdict; promotes on your go |
 | `triage` | "sweep the backlog", "what's unlabelled" | Finds tickets the taxonomy missed |
 | `red-green` | "implement", "resume" | The loop, and the commit evidence |
-| `design-sketching` | A lifecycle or sequence needs a picture | Mermaid that renders on GitHub |
+| `design-sketching` | A lifecycle or sequence needs a picture | Mermaid that renders on GitHub, including the coverage diagram |
+| `design-docs` | "where does this go", "the doc is out of date" | The appendix docs a ticket links to, and anchors that stay true |
 | `manual-test-design` | Planning coverage | What needs a human, and the steps |
 | `review-handoff` | "this is done" | Green → PR → checklist → In review |
 | `verification-failed` | "step 3 failed" | Records, labels, sends the card back |
