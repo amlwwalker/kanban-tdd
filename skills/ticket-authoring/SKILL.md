@@ -555,6 +555,16 @@ Open the issue and check any Mermaid rendered. It fails silently.
 **Backlog means written but not approved.** Do not create a branch, do not write
 a test, do not move the card to Ready — moving it is the human's signal.
 
+**Always print the full ticket URL**, never just the number:
+
+```bash
+gh issue view <n> --json url -q .url
+```
+
+`#7` is not clickable and makes someone search for the card. The summary is the
+last thing read before they go and look, so the link belongs in it. This applies
+to every skill that finishes a piece of ticket work, not only this one.
+
 "Have a look at the ticket" gets a ticket skimmed. The thing that needs
 agreement is **the test plan**, because it is the definition of done: a
 behaviour with no test on that list will not be built, and nothing downstream

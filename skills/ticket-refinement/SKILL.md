@@ -118,6 +118,15 @@ should be closed.
 Two shapes, nothing in between. Do not hedge — "mostly ready" helps nobody
 decide anything.
 
+**Lead with the full ticket URL**, not `#7`:
+
+```bash
+gh issue view <n> --json url -q .url
+```
+
+The verdict is read immediately before someone opens the card to act on it, so
+the link belongs in the verdict rather than leaving them to search for it.
+
 **Not ready:**
 
 > #7 is not ready. Three things:
