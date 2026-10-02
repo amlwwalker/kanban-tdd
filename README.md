@@ -768,7 +768,9 @@ You will rarely name these. They fire from what you say.
 | `red-green` | "implement", "resume" | The loop, and the commit evidence |
 | `design-sketching` | A lifecycle or sequence needs a picture | Mermaid that renders on GitHub, including the coverage diagram |
 | `design-docs` | "where does this go", "the doc is out of date" | The appendix docs a ticket links to, and anchors that stay true |
-| `manual-test-design` | Planning coverage | What needs a human, and the steps |
+| `manual-test-design` | Planning coverage | What needs a human to drive, and the steps |
+| `browser-setup` | `/browser-setup` | One-time Playwright scaffold for screenshot evidence |
+| `browser-evidence` | "screenshots for the ticket", "what does it look like" | Runs the browser suite, publishes the images |
 | `review-handoff` | "this is done" | Green → PR → checklist → In review |
 | `verification-failed` | "step 3 failed" | Records, labels, sends the card back |
 | `release-to-production` | "ship it", "promote to staging" | Integration → staging → production |

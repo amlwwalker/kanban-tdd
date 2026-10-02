@@ -1,6 +1,6 @@
 ---
 name: review-handoff
-description: Move an implemented feature to In review — run every suite and CI, verify the red→green evidence exists, publish the TDD test inventory, open and merge the PR to the integration branch, and append the numbered manual checklist to the ticket. Use when a feature is finished and green. Triggers on "ready for review", "hand this off", "move to in review", "open the PR", "this is done", "finished the feature".
+description: Move an implemented feature to In review — run every suite and CI, verify the red→green evidence exists, publish the TDD test inventory, check the design docs are still true, capture browser screenshots for the ticket, open and merge the PR to the integration branch, and append the numbered manual checklist. Use when a feature is finished and green. Triggers on "ready for review", "hand this off", "move to in review", "open the PR", "this is done", "finished the feature".
 ---
 
 # Review handoff
@@ -163,13 +163,42 @@ in the green commit, and arriving here with a stale doc means that was missed.
 Fix it now rather than filing it: a known-wrong document is worse than none,
 because people trust it once and then stop trusting the folder.
 
-## 7. Optional: review the branch first
+## 7. Capture the browser evidence
+
+**Skip entirely when the config has no `browser` block.** Nothing here depends
+on it.
+
+Otherwise run the capture per `browser-evidence` and attach the images to the
+ticket, so the person verifying reviews evidence rather than taking a
+passing-test count on trust. For a ticket with `[browser]` lines in its test
+plan, this is how those lines get proved.
+
+```bash
+jq -e '.browser' .claude/workflow.config.json >/dev/null 2>&1 && echo configured
+```
+
+**This is not a gate.** The suites in step 2 are the gate; a browser run is slow,
+needs the whole stack up, and makes a flaky gate that then gets ignored. So:
+
+- It fails → **report it, attach what it captured, and do not block.** The failure
+  screenshot is often the most useful image of the run.
+- It fails on something a user would plainly see → say so prominently and let the
+  human decide whether to stop. A browser failure on visible behaviour usually
+  means a real bug the fast suites missed, which is the entire reason for running
+  it. Do not quietly carry on as though it passed.
+- A cold-server timeout → note it and move on.
+
+Publishing needs a human to confirm the images render — `curl` cannot check it on
+a private repo, where a working and a broken image both return 404. Carry that
+ask into step 12 rather than claiming the evidence is in place.
+
+## 8. Optional: review the branch first
 
 If `code-review` resolves to a provider, run it before opening the PR. Findings
 are cheaper to act on before a reviewer reads the diff. Resolve per
 `references/capabilities.md`.
 
-## 8. Open the PR to the integration branch
+## 9. Open the PR to the integration branch
 
 ```bash
 gh pr create --base <integration> --head "$(git branch --show-current)" \
@@ -216,7 +245,7 @@ reviewer cannot miss it.
 Add a Mermaid diagram only if the implementation diverged from the ticket's —
 otherwise link the ticket.
 
-## 9. Wait for CI, then merge
+## 10. Wait for CI, then merge
 
 ```bash
 gh pr checks --watch
@@ -229,7 +258,7 @@ together *before* the PR exists.
 
 If CI fails, fix it on the branch. Do not move the card.
 
-## 10. Append the manual checklist to the ticket
+## 11. Append the manual checklist to the ticket
 
 Use `manual-test-design` to write the steps, **numbered**, each tied to an
 acceptance criterion. Then:
@@ -254,7 +283,7 @@ gh issue edit <issue> --remove-label verification-failed
 and comment saying what changed and which test now covers it, so the tester
 knows what to re-check rather than re-running the whole checklist blind.
 
-## 11. Now move the card
+## 12. Now move the card
 
 Which column depends on the flow the config describes:
 
@@ -270,7 +299,7 @@ the first environment, and `release-to-production` carries it onward.
 Last, deliberately. The card now says something true: it is on the integration
 branch and can be tried.
 
-## 12. Tell the human what to do
+## 13. Tell the human what to do
 
 One short message: the PR link, the issue link, and that the checklist is
 waiting on the ticket. Do not paste the whole checklist into chat — it lives on

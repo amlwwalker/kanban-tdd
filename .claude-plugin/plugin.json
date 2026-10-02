@@ -31,6 +31,8 @@
     "./skills/design-sketching",
     "./skills/design-docs",
     "./skills/manual-test-design",
+    "./skills/browser-setup",
+    "./skills/browser-evidence",
     "./skills/review-handoff",
     "./skills/verification-failed",
     "./skills/release-to-production"

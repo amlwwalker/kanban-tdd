@@ -473,8 +473,24 @@ So for a config with `backend` and `frontend` suites:
 - [backend]  AC1 · rejects a blank name with 422
 - [backend]  AC2 · PUT resets fields the body omits
 - [frontend] AC3 · PATCH body omits unticked fields
-- [manual]   AC4 · the console shows the reset field as blank in the table
+- [browser]  AC4 · the reset field shows blank in the table, at all three widths
+- [manual]   AC5 · the Stripe sandbox accepts the test card
 ```
+
+Two tags beyond the suite keys:
+
+- **`[browser]`** — covered by a browser capture: the suite drives it and
+  photographs the result, and a human reviews the image on the ticket. Only
+  where the config has a `browser` block. This is the right tag for anything
+  visual, responsive, or an error state that can be forced — see
+  `browser-evidence`.
+- **`[manual]`** — a human must *drive* it. Much narrower than it used to be:
+  third-party sandboxes, native browser dialogs, hardware, and feel in motion.
+  Everything else that was once manual is now `[browser]`.
+
+Getting this split right is what stops the manual checklist growing every
+release. See `manual-test-design` for the closed list of what genuinely needs a
+person driving.
 
 **Every acceptance criterion must have at least one test.** A criterion with no
 test is a criterion nobody will check, and it will be ticked at review because
