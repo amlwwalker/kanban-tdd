@@ -98,6 +98,61 @@ stays is the *why*, which a diagram cannot show.
 - **Not in a comment** as the only record. Comments scroll away; fold it into
   the body.
 
+## The coverage diagram
+
+The highest-value diagram in a ticket, and the reason this skill exists in the
+workflow at all: **colour marks which outcomes have a test.** Green is covered
+by a line of the test plan, red is a known path with no test.
+
+```mermaid
+flowchart TD
+    In["login(email, pw)"] --> N{"normalise email?"}
+    N -->|"lowercased"| L{"lookup user"}
+    N -->|"as typed"| MISS["no user found"]
+    L -->|"found"| P{"password ok?"}
+    L -->|"not found"| E401a["401 invalid credentials · AC2"]
+    P -->|"yes"| OK["200 + session · AC1"]
+    P -->|"no"| E401b["401 invalid credentials · AC3"]
+
+    OK:::covered
+    E401a:::covered
+    E401b:::covered
+    MISS:::gap
+
+    classDef covered fill:#1b4332,stroke:#2d6a4f,color:#fff
+    classDef gap fill:#7f1d1d,stroke:#b91c1c,color:#fff
+```
+
+**The red box is the point.** It is what the human looks at before signing off
+the test plan, and in the example above it is a real bug: an email stored
+lowercase and looked up as typed means `Alex@foo.com` cannot log in, nothing
+throws, and nothing is logged. Drawn, it is undeniable. Described in prose, it
+is a sentence in a paragraph nobody finished.
+
+Four rules, each forced by something that actually breaks:
+
+**Use these four hex values.** Not approximations. `classDef` emits
+`fill: … !important` on the node rect and `color:#fff !important` on the label,
+which is what survives GitHub's own theme CSS. Dark fills with white text read
+on both GitHub themes; the pale pastels people reach for — `#d4edda` and
+relatives — are illegible on dark, where plenty of people read tickets.
+
+**Colour the outcome, not the arrow.** Mermaid has no per-edge `classDef` that
+renders reliably on GitHub. This is the better convention anyway: a test asserts
+an *outcome*, so the terminal box is the honest place for the marker.
+
+**Put the criterion in the node label** — `"401 invalid credentials · AC3"` —
+rather than hanging an annotation node off a dotted edge. Annotation nodes
+double the node count and breach the dozen-node limit above.
+
+**A red box needs a reason somewhere.** Either it becomes a criterion, or the
+ticket's failure-mode table says why it is out of scope. A red box with no
+explanation is the gap the diagram was drawn to expose, and leaving it
+unexplained wastes the drawing.
+
+Skip the diagram when there are fewer than two failure paths. One request, one
+response, one error is a table.
+
 ## Mark where it breaks
 
 For a **bug** in a multi-step flow, the diagram's job is to let a reader point

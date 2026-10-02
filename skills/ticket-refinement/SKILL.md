@@ -65,6 +65,43 @@ Go down the criteria and find each one in the test plan. An orphaned criterion
 is the most common defect in an otherwise complete ticket: it reads fine, and
 nothing will ever prove it. Name the orphans specifically.
 
+**Do the criteria cover failure, or only success?**
+A list where every criterion is a happy path means the behavioural interview
+either did not happen or its results were discarded. This is not a style
+preference — it is the most common way a ticket passes every other check and
+still ships a feature that breaks on the first malformed input.
+
+The ticket must carry a failure-mode table with a covered/not-covered column,
+and each uncovered row must give a reason. "None, because this changes a static
+string and has no inputs, dependencies or failure path" is a complete answer for
+a trivial ticket. An absent section is not.
+
+**Were the input domains walked for anything compared or looked up?**
+For an email, username, slug, code or external id: case, whitespace,
+empty-versus-null-versus-absent, and uniqueness under normalisation. An
+unanswered dimension on an identifier-like input is a *not ready* — these are
+the defects where the code has no branch at all, so no amount of failure-path
+thinking finds them later.
+
+The specific question that gets missed: is the value normalised **on write and
+on read**? One side alone is worse than neither, because the data looks clean
+and the lookup still misses.
+
+**Does every red box on the coverage diagram have a reason?**
+A red outcome is either a criterion or an explicitly waived mode in the
+failure-mode table. An unexplained red box is the gap the diagram exists to
+expose.
+
+**Do the design-doc links resolve?**
+If the ticket links to `design-docs/`, check the files and anchors exist:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/skills/review-handoff/scripts/design-anchors.sh" --list
+```
+
+A ticket pointing at an anchor nobody added is not ready — the next person
+follows the link, finds nothing, and stops trusting the folder.
+
 **Does the test plan name real suites?** Every tag must be a key from `tests`
 in the config, or `[manual]`. A tag naming a framework (`[vitest]`) where the
 config calls the suite something else (`unit`) is wrong even though it reads
@@ -81,9 +118,18 @@ should be closed.
 Two shapes, nothing in between. Do not hedge — "mostly ready" helps nobody
 decide anything.
 
+**Lead with the full ticket URL**, not `#7`:
+
+```bash
+gh issue view <n> --json url -q .url
+```
+
+The verdict is read immediately before someone opens the card to act on it, so
+the link belongs in the verdict rather than leaving them to search for it.
+
 **Not ready:**
 
-> #7 is not ready. Two things:
+> #7 is not ready. Three things:
 >
 > 1. The ticket asks whether visibility is per-user or global and nothing
 >    answers it. Everything downstream depends on that — per-user needs a
@@ -91,8 +137,11 @@ decide anything.
 > 2. AC3 says "private records are protected", which cannot be verified without
 >    reading the code, and no test in the plan covers it. What is the
 >    observable behaviour — a 404, a 403, or absence from the list?
+> 3. All four criteria are happy-path and there is no failure-mode table. The
+>    feature calls an external API — what does the caller see when it is down,
+>    and does a partial write get rolled back?
 >
-> Answer those two and it is ready.
+> Answer those three and it is ready.
 
 **Ready:**
 
@@ -152,3 +201,8 @@ offer to close it. A backlog nobody prunes is a backlog nobody trusts.
 - Promote a ticket without being told to.
 - Refine around a missing user story.
 - Pass a ticket whose acceptance criteria have no tests against them.
+- Pass a ticket whose criteria are all happy-path with no stated reason.
+- Pass a ticket with an unanswered input-domain dimension on a value that is
+  compared or looked up.
+- Pass a ticket with an unexplained red box on its coverage diagram, or a
+  design-doc link that does not resolve.

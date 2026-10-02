@@ -5,8 +5,9 @@ A Claude Code plugin that runs your work through a GitHub project board and
 
 Not "here is a checklist you should follow". The plugin refuses to skip:
 it will not write code before a ticket exists, will not design before you
-have agreed the user story, will not commit a test it has not watched fail,
-and will not mark anything done — that one is always yours.
+have agreed the user story, will not write acceptance criteria before it has
+interrogated how the thing breaks, will not commit a test it has not watched
+fail, and will not mark anything done — that one is always yours.
 
 **[See a full walkthrough →](WALKTHROUGH.md)** — one ticket from idea to
 production on a real board, with screenshots.
@@ -59,6 +60,28 @@ gh auth refresh -s project
 brew install jq            # or your package manager
 ```
 
+### Upgrading
+
+Third-party marketplaces do **not** auto-update by default, so a new release
+will not arrive on its own:
+
+```
+/plugin update kanban-tdd@amlwwalker
+/reload-plugins
+```
+
+`/reload-plugins` loads the new skills into the session you are already in;
+without it they appear at the next start. From a shell, `claude plugin update
+kanban-tdd@amlwwalker` does the same.
+
+To stop having to ask, turn auto-update on once — `/plugin marketplace update
+amlwwalker`, then **Enable auto-update** on the Marketplaces tab.
+
+After upgrading to **0.4.0**, existing repos keep working unchanged. Two
+optional things to pick up: `/browser-setup` if the project has a UI, and a
+`design-docs/` folder the first time a ticket wants one. Neither is required
+and nothing breaks without them.
+
 **Already using the Hiway standards skills?** Remove the four that clash
 before installing, or two skills will compete for the same triggers:
 **[MIGRATING.md](MIGRATING.md)**.
@@ -94,6 +117,15 @@ cd ~/dev/acme/api
 ```
 /board-setup
 ```
+
+**If the project has a UI**, one more, once:
+
+```
+/browser-setup
+```
+
+It scaffolds a Playwright suite whose output is screenshots for your tickets.
+Optional — skip it and everything else works unchanged.
 
 That is the last slash command you need. After setup you never invoke a skill
 by name — you describe what you want, and the right one fires.
@@ -158,6 +190,11 @@ things blocking". If you have commented on the ticket, it reads the comments
 and folds decisions into the body before promoting, because a decision that
 lives only in comment #4 is one the next person misses.
 
+**What you are approving is the test plan**, not the prose. It will name every
+failure mode it found and did *not* cover, so the gaps are something you agree
+to rather than discover later. A ticket whose criteria are all happy-path comes
+back as "not ready".
+
 Promotion to **Ready** happens only when you say go.
 
 ### 4. Build it
@@ -189,14 +226,19 @@ this is done
 ```
 
 Runs every suite, checks the red→green pairs actually exist, builds a test
-inventory with permalinks, opens and merges the PR to your integration
-branch, writes a numbered manual checklist onto the **ticket**, and moves the
-card to **In review**.
+inventory with permalinks, verifies every `design:` link still resolves, opens
+and merges the PR to your integration branch, writes a numbered manual
+checklist onto the **ticket**, and moves the card to **In review**.
+
+With `/browser-setup` configured it also captures screenshots at each width and
+publishes them to the ticket — so the next step is reviewing evidence rather
+than taking a passing-test count on trust.
 
 ### 6. You verify
 
 Work through the checklist. Each step says where to start, one thing to look
-at, and what right looks like.
+at, and what right looks like. Where screenshots exist, much of what used to be
+a step is now an image you glance at.
 
 - **It passes** → move the card to **Done** yourself. That is what authorises
   a release.
@@ -507,8 +549,8 @@ back on you.**
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Backlog: story agreed, ticket written
-    Backlog --> Ready: human approves the design
+    [*] --> Backlog: story agreed, behaviour interrogated, ticket written
+    Backlog --> Ready: human signs off the test plan
     Ready --> InProgress: branch cut from integration
     InProgress --> InReview: suites green, CI green, merged
     InReview --> Done: human ticks every manual step
@@ -524,15 +566,95 @@ stateDiagram-v2
 
 | Transition | What has to be true | Who |
 |---|---|---|
-| → Backlog | Story agreed **first**, then design, criteria, test plan | Claude |
-| Backlog → Ready | Every question answered, every criterion verifiable | **you** |
+| → Backlog | Story agreed **first**, then behaviour interrogated, then design, criteria, test plan | Claude |
+| Backlog → Ready | Every question answered, criteria verifiable **and covering failure**, test plan signed off | **you** |
 | Ready → In progress | Branch cut from the integration branch | Claude |
-| In progress → In review | Suites green, CI green, red→green pairs present, merged | Claude |
+| In progress → In review | Suites green, CI green, red→green pairs present, design docs true, merged | Claude |
 | In review → Done | You ticked every manual step | **you** |
 | In review → In progress | A manual step failed | Claude |
 
 **Two moves a machine never makes: Ready and Done.** Both are your judgement,
 and they are the only gates that cannot be self-certified.
+
+---
+
+## Where the tests come from
+
+A test plan is only as good as the thinking behind it, and the common failure
+is a ticket whose criteria are all happy-path. It passes every other gate — each
+criterion is observable, each has a test — and the feature still breaks on the
+first malformed input.
+
+So before the design is drafted, the behaviour is interrogated along three axes.
+Each is a **closed list**, walked, so "we never thought about that" cannot
+survive to implementation disguised as "it didn't come up".
+
+**Failure modes.** For each step: dependency down, dependency slow, dependency
+returning garbage, partial write, concurrent writer, permission absent, resource
+missing, resource already there. Each answer becomes a criterion that says what
+does *not* happen as well as what does — "returns 503" passes with a half-written
+record; "503 and the record is not written" does not.
+
+**Input domains.** For each input: case, whitespace, unicode, length,
+empty-versus-null-versus-absent, uniqueness, type coercion. This catches a
+different class of defect from the first — not a path that fails, but **a path
+the code does not have**, because the real world supplies values nobody tested.
+An email stored as `Alex@foo.com` and looked up as typed fails login; nothing
+throws, nothing is logged, and no failure-path thinking finds it. The question
+that does is: *is this normalised on write **and** on read?* One side alone is
+worse than neither, because the data looks clean and the lookup still misses.
+
+**Parity.** What sits alongside this feature, and where does it differ — error
+shape, validation, auth, pagination, empty collections. Every divergence is a
+stated decision or a bug.
+
+Each axis ends the same way: **which of these are we deliberately not covering,
+and why?** A named waiver is a decision. An unmentioned gap is the defect.
+
+### You sign off the tests, not the ticket
+
+Moving a card to Ready now means *the test plan is agreed*. The ask names every
+waived mode, because that is the line worth disagreeing with while it is still
+cheap:
+
+> Three failure modes found, two covered:
+> ✓ blank name → 422 ✓ provider timeout → 503, no partial write
+> ✗ concurrent PATCH on the same row — out of scope, pre-existing, no test
+
+And the ticket carries a coverage diagram where **red means a known path with no
+test** — so a gap is something you see rather than something you have to notice.
+
+### The detail lives next to the code, not on the ticket
+
+Rigour nobody reads is worse than none, because a rubber-stamped gate
+manufactures confidence. So the interview transcripts and the full design go in
+`design-docs/`, and the ticket carries a synopsis plus tables that link into it.
+
+Code and tests point back by a stable anchor — `design: design-docs/features/auth.md [AUTH-3]`
+— verified by a script at the review gate, so a renamed heading cannot silently
+orphan every comment that referenced it. Documents are updated **in the green
+commit**, not in a follow-up nobody picks up.
+
+### Screenshots, for the people who do not read test output
+
+Unit tests prove the logic is right. They cannot prove the user can see the
+thing, and "42 tests passed" means nothing to a reviewer who does not read test
+output.
+
+`/browser-setup` scaffolds a Playwright suite whose primary output is
+**evidence**: every state captured at three widths, error states forced with
+route interception, published to the ticket as images. Pass/fail is the
+secondary benefit.
+
+It is deliberately **not** a merge gate — a browser suite is slow, needs the
+whole stack up, and makes a flaky gate that then gets ignored. A failure is
+reported with whatever it captured, and you decide.
+
+This also shrinks the manual checklist. "Does the layout hold at 390px" needs a
+human to *look*, not to *drive* — so it becomes a screenshot you glance at
+rather than four minutes of resizing a window, repeatable every release. What
+genuinely still needs a person driving: third-party sandboxes, native browser
+dialogs, hardware, and feel in motion.
 
 ---
 
@@ -766,8 +888,11 @@ You will rarely name these. They fire from what you say.
 | `ticket-refinement` | "is #7 ready", "I commented" | Verdict; promotes on your go |
 | `triage` | "sweep the backlog", "what's unlabelled" | Finds tickets the taxonomy missed |
 | `red-green` | "implement", "resume" | The loop, and the commit evidence |
-| `design-sketching` | A lifecycle or sequence needs a picture | Mermaid that renders on GitHub |
-| `manual-test-design` | Planning coverage | What needs a human, and the steps |
+| `design-sketching` | A lifecycle or sequence needs a picture | Mermaid that renders on GitHub, including the coverage diagram |
+| `design-docs` | "where does this go", "the doc is out of date" | The appendix docs a ticket links to, and anchors that stay true |
+| `manual-test-design` | Planning coverage | What needs a human to drive, and the steps |
+| `browser-setup` | `/browser-setup` | One-time Playwright scaffold for screenshot evidence |
+| `browser-evidence` | "screenshots for the ticket", "what does it look like" | Runs the browser suite, publishes the images |
 | `review-handoff` | "this is done" | Green → PR → checklist → In review |
 | `verification-failed` | "step 3 failed" | Records, labels, sends the card back |
 | `release-to-production` | "ship it", "promote to staging" | Integration → staging → production |
@@ -843,6 +968,17 @@ team should share one.
       "language": "vitest"
     }
   },
+  "browser": {
+    "command": "pnpm test:e2e",
+    "screenshotDir": "e2e/screenshots",
+    "baseUrlEnv": "E2E_BASE_URL",
+    "viewports": [
+      { "name": "desktop", "width": 1280, "height": 900 },
+      { "name": "phone", "width": 390, "height": 844 }
+    ],
+    "assetsBranch": "assets",
+    "imageFormat": "jpg"
+  },
   "capabilities": {
     "design-interview": { "provider": "auto" },
     "tdd-discipline": { "provider": "auto" }
@@ -855,6 +991,11 @@ team should share one.
 object with a `provider` key. `language` selects how the test inventory
 extracts names: `go`, `vitest`, `jest`, `pytest`, `rspec`, `other`.
 
+`browser` is optional and written by `/browser-setup`. **Omit it and the whole
+screenshot capability skips in silence** — nothing else depends on it, and a
+repo with no UI has no use for it. Set `assetsBranch` to `null` to keep the
+screenshots local and drag them into comments yourself.
+
 </details>
 
 ---
@@ -863,9 +1004,16 @@ extracts names: `go`, `vitest`, `jest`, `pytest`, `rspec`, `other`.
 
 - Move a card to Ready or to Done.
 - Write code before a ticket exists.
+- Write acceptance criteria before interrogating how the thing breaks, or file
+  a ticket whose criteria are all happy-path without saying so.
 - Commit a test it has not watched fail, or label one `test(red):` when it
   passed on arrival.
 - Open a PR on a red branch, or merge with CI failing.
+- Open a PR with a `design:` comment pointing at an anchor that no longer
+  exists, or leave a design doc contradicting the branch it describes.
+- Claim a published screenshot renders without a human having looked — on a
+  private repo there is no programmatic way to check.
+- Block a merge on a browser test. Those produce evidence; they are not a gate.
 - Release anything not in Done without telling you what is unverified.
 - Act on a failure it cannot reproduce. If you report a bug it cannot make
   happen, it will say so and ask for the exact command — it will not move
@@ -898,6 +1046,24 @@ It should not. Check `feature-workflow` is installed (`/plugin`) and that
 **Working offline**
 Branches, TDD and commits all work. Board and PR steps defer, and Claude will
 say which are outstanding — deferred, not skipped.
+
+**Screenshots on a ticket show as broken images**
+Three known causes, in order of likelihood. They were published as `.png` —
+GitHub renders a PNG from the assets branch as a broken icon with the blob
+present and the markdown identical, which is why `imageFormat` defaults to
+`jpg`. Or the link points at a branch name rather than a commit SHA, so it
+changed meaning when the branch moved. Or the contents API's `download_url` was
+used, which carries a `?token=` that expires within minutes.
+
+Note that **`curl` cannot diagnose this on a private repo** — a working and a
+broken image both return 404 to an authenticated request, because a token is
+not a browser session. Open the ticket and look.
+
+**`design: … has no anchor {#ID}`**
+A design-doc section was renamed or removed while code still pointed at its ID.
+Repoint the comment at the right anchor. Never revive a retired ID: reuse aims
+every existing link at unrelated content, which is worse than a break because
+it resolves silently.
 
 ---
 

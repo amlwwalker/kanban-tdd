@@ -117,6 +117,17 @@ Normal `review-handoff`, with two additions:
   the tester knows what to re-check and does not have to re-run the whole
   checklist blind.
 
+## Report with the link
+
+Finish by printing the **full ticket URL**, not `#7`:
+
+```bash
+gh issue view <n> --json url -q .url
+```
+
+Someone reading this is about to go and look at the card — at the failure
+comment, or at the step that is being re-checked. Make that one click.
+
 ## What this skill will not do
 
 - Move the card to Done. A fixed failure still needs the human to re-verify.

@@ -1,6 +1,6 @@
 ---
 name: review-handoff
-description: Move an implemented feature to In review — run every suite and CI, verify the red→green evidence exists, publish the TDD test inventory, open and merge the PR to the integration branch, and append the numbered manual checklist to the ticket. Use when a feature is finished and green. Triggers on "ready for review", "hand this off", "move to in review", "open the PR", "this is done", "finished the feature".
+description: Move an implemented feature to In review — run every suite and CI, verify the red→green evidence exists, publish the TDD test inventory, check the design docs are still true, capture browser screenshots for the ticket, open and merge the PR to the integration branch, and append the numbered manual checklist. Use when a feature is finished and green. Triggers on "ready for review", "hand this off", "move to in review", "open the PR", "this is done", "finished the feature".
 ---
 
 # Review handoff
@@ -120,13 +120,85 @@ reports tests missing their description, **add the descriptions** — one `//`
 line directly above `func TestX` for Go, a clear `it()` string elsewhere. Do
 not hand a reviewer a table with blanks in it.
 
-## 6. Optional: review the branch first
+## 6. Check the design docs are still true
+
+Two checks. The first is mechanical, the second needs judgement.
+
+### The anchor links resolve
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/skills/review-handoff/scripts/design-anchors.sh"
+```
+
+Every `design:` comment in the codebase must point at a document that exists and
+an anchor that exists in it. **A non-zero exit blocks the handoff** — this is not
+a judgement call, it is a dangling pointer. Fix it by repointing the comment at
+the right anchor, never by reviving a retired ID: reuse silently aims every
+existing link at unrelated content, which is worse than a break because it
+resolves.
+
+### The documents still describe reality
+
+If the diff changed behaviour that a `design:` comment covers, and the referenced
+document has not been touched since the ticket was written, **ask**:
+
+```bash
+git diff --name-only "$(git merge-base HEAD origin/<integration>)"..HEAD -- 'design-docs/**'
+```
+
+Nothing listed, but behaviour changed under a `design:` comment? Say so in the
+handoff rather than resolving it silently:
+
+> `src/auth/normalise.go` changed and it carries `design: … [AUTH-3]`, but
+> `design-docs/features/auth-email-normalisation.md` has not been touched on this
+> branch. The doc says normalisation happens on write only, and this branch adds
+> it on read too — I have updated the doc in `<sha>`. Worth a look.
+
+This is deliberately a **question, not a failure**. A refactor can legitimately
+leave the design unchanged, and a gate that cries wolf gets routed around. But it
+is asked every time, and the answer goes in the handoff where a reviewer sees it.
+
+If the doc *is* wrong, the fix belongs on this branch — `red-green` puts doc edits
+in the green commit, and arriving here with a stale doc means that was missed.
+Fix it now rather than filing it: a known-wrong document is worse than none,
+because people trust it once and then stop trusting the folder.
+
+## 7. Capture the browser evidence
+
+**Skip entirely when the config has no `browser` block.** Nothing here depends
+on it.
+
+Otherwise run the capture per `browser-evidence` and attach the images to the
+ticket, so the person verifying reviews evidence rather than taking a
+passing-test count on trust. For a ticket with `[browser]` lines in its test
+plan, this is how those lines get proved.
+
+```bash
+jq -e '.browser' .claude/workflow.config.json >/dev/null 2>&1 && echo configured
+```
+
+**This is not a gate.** The suites in step 2 are the gate; a browser run is slow,
+needs the whole stack up, and makes a flaky gate that then gets ignored. So:
+
+- It fails → **report it, attach what it captured, and do not block.** The failure
+  screenshot is often the most useful image of the run.
+- It fails on something a user would plainly see → say so prominently and let the
+  human decide whether to stop. A browser failure on visible behaviour usually
+  means a real bug the fast suites missed, which is the entire reason for running
+  it. Do not quietly carry on as though it passed.
+- A cold-server timeout → note it and move on.
+
+Publishing needs a human to confirm the images render — `curl` cannot check it on
+a private repo, where a working and a broken image both return 404. Carry that
+ask into step 12 rather than claiming the evidence is in place.
+
+## 8. Optional: review the branch first
 
 If `code-review` resolves to a provider, run it before opening the PR. Findings
 are cheaper to act on before a reviewer reads the diff. Resolve per
 `references/capabilities.md`.
 
-## 7. Open the PR to the integration branch
+## 9. Open the PR to the integration branch
 
 ```bash
 gh pr create --base <integration> --head "$(git branch --show-current)" \
@@ -173,7 +245,7 @@ reviewer cannot miss it.
 Add a Mermaid diagram only if the implementation diverged from the ticket's —
 otherwise link the ticket.
 
-## 8. Wait for CI, then merge
+## 10. Wait for CI, then merge
 
 ```bash
 gh pr checks --watch
@@ -186,7 +258,7 @@ together *before* the PR exists.
 
 If CI fails, fix it on the branch. Do not move the card.
 
-## 9. Append the manual checklist to the ticket
+## 11. Append the manual checklist to the ticket
 
 Use `manual-test-design` to write the steps, **numbered**, each tied to an
 acceptance criterion. Then:
@@ -211,7 +283,7 @@ gh issue edit <issue> --remove-label verification-failed
 and comment saying what changed and which test now covers it, so the tester
 knows what to re-check rather than re-running the whole checklist blind.
 
-## 10. Now move the card
+## 12. Now move the card
 
 Which column depends on the flow the config describes:
 
@@ -227,7 +299,7 @@ the first environment, and `release-to-production` carries it onward.
 Last, deliberately. The card now says something true: it is on the integration
 branch and can be tried.
 
-## 11. Tell the human what to do
+## 13. Tell the human what to do
 
 One short message: the PR link, the issue link, and that the checklist is
 waiting on the ticket. Do not paste the whole checklist into chat — it lives on
@@ -260,3 +332,6 @@ misread rather than genuinely broken.
 - Merge with CI red or any suite failing.
 - Write manual steps for a UI it has not seen running.
 - Claim red→green evidence exists without checking the log.
+- Open a PR with a dangling `design:` link.
+- Leave a design doc contradicting the branch it describes, or resolve the
+  question silently instead of putting it in the handoff.

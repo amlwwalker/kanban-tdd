@@ -228,6 +228,79 @@
         }
       }
     },
+    "browser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "screenshotDir"
+      ],
+      "description": "Browser-driven evidence: a real browser walks the feature and photographs it, so a reviewer who does not read test output can see it working. Omit this block entirely and the whole capability skips in silence — nothing else in the workflow depends on it. NOT a merge gate: unit and integration suites stay the gate, because a browser suite is slow, needs the whole stack up, and makes a flaky gate that then gets ignored. Run `/browser-setup` to scaffold it.",
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "What runs the suite — a package script or make target, never a raw tool invocation, so a human and CI cannot drift apart. e.g. `pnpm test:e2e`."
+        },
+        "specCommand": {
+          "type": "string",
+          "description": "Optional template for running ONE spec, with {spec} substituted. e.g. `pnpm test:e2e {spec}`. Without it, the whole suite runs to capture one ticket's screenshots."
+        },
+        "screenshotDir": {
+          "type": "string",
+          "description": "Where the suite writes its images, relative to the repo root. e.g. `e2e/screenshots`. Must be git-ignored: screenshots are build artefacts, and committing them bloats the repo and puts stale images on tickets."
+        },
+        "baseUrlEnv": {
+          "type": "string",
+          "default": "E2E_BASE_URL",
+          "description": "Env var the suite reads for its base URL. Reading this from day one, even when only ever run locally, is the difference between pointing the suite at a deployed environment and rewriting it."
+        },
+        "seedCommand": {
+          "type": "string",
+          "description": "One command that creates the fixture users and content, reproducibly. Required for CI, and the thing that lets a suite arrange its own state rather than depending on what a previous run left behind."
+        },
+        "viewports": {
+          "type": "array",
+          "description": "Widths every responsive capture is taken at. The viewport matrix is the highest-value pattern here: one run produces a full responsive review instead of three.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "width",
+              "height"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Filename suffix, e.g. `desktop`, `ipad`, `phone`."
+              },
+              "width": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "assetsBranch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": "assets",
+          "description": "Orphan branch that screenshots are committed to so they can be embedded in issue comments by raw URL. GitHub has no API for attaching an image to a comment — the drag-and-drop uploader is web-UI only — so this branch is the workaround. Set null to skip publishing and have the human drag images in themselves."
+        },
+        "imageFormat": {
+          "enum": [
+            "jpg",
+            "png"
+          ],
+          "default": "jpg",
+          "description": "Format published to the assets branch. `jpg` by default because a PNG has been observed rendering as a broken-image icon in a GitHub comment with the blob present and the markdown identical. Keep jpg unless you have a reason."
+        }
+      }
+    },
     "taxonomy": {
       "type": "object",
       "additionalProperties": false,
