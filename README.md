@@ -1067,6 +1067,17 @@ it resolves silently.
 
 ---
 
+## Contributing
+
+**[CONTRIBUTING.md](CONTRIBUTING.md)** — written for whoever picks this up
+next, which is usually a Claude instance. It records what is not visible from
+reading the code: that a pinned `version` is what gates a release reaching
+anyone, that a skill must be registered in two places or it silently does not
+load, and the handful of shell and `gh` behaviours that have each cost a real
+debugging session.
+
+---
+
 ## Credits
 
 The seam vocabulary and the vertical-slice / tracer-bullet rules are adapted
