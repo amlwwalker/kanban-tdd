@@ -186,7 +186,16 @@ TREE="$(gh api "repos/$SLUG/git/trees" --input "$TMP/tree.json" --jq .sha)" \
 
 # The orphan branch may not exist yet. With a parent, the commit chains; without,
 # it starts the branch. Keep it orphaned and code-free.
+#
+# `gh api --jq` prints its error JSON to STDOUT on a 404, so `|| true` captures
+# a {"message":"Not Found",...} blob instead of an empty string, and the commit
+# then fails with "parents must be exactly 40 characters". Validate the shape
+# rather than trusting the exit code.
 PARENT="$(gh api "repos/$SLUG/git/ref/heads/$BRANCH" --jq .object.sha 2>/dev/null || true)"
+case "$PARENT" in
+  *[!0-9a-f]* | "") PARENT="" ;;            # anything not a bare hex string
+esac
+[[ ${#PARENT} -eq 40 ]] || PARENT=""
 
 if [[ -n "$PARENT" ]]; then
   COMMIT="$(gh api "repos/$SLUG/git/commits" \
