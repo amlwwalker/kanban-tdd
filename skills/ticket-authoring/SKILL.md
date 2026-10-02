@@ -68,6 +68,43 @@ If they change the story, rewrite it and ask again.
 
 Only once the story is agreed.
 
+### Interrogate the behaviour, before designing it
+
+**This comes before the design, not after it.** Acceptance criteria written
+from a drafted design describe what the author already decided to build;
+criteria written from a walked checklist describe what the feature must do. The
+second catches things nobody thought of, which is the entire point.
+
+Work the three axes in `references/interview.md`:
+
+- **Failure modes** — for each step, what happens when it fails. Dependency
+  down, dependency slow, dependency lying, partial write, concurrent writer,
+  permission absent, resource missing, resource already there.
+- **Input domains** — for each input: case, whitespace, unicode, length,
+  empty-versus-null-versus-absent, uniqueness, type coercion. This axis finds a
+  different defect class from the first. Not a path that fails, but a path the
+  code does not have, because the real world supplies values nobody tested.
+  `Alex@foo.com` failing login is this, and no amount of failure-path thinking
+  finds it.
+- **Parity** — what sits alongside this feature, and where does it differ.
+  Error shape, validation, auth, pagination, empty collections. Every
+  divergence is a stated decision or a bug.
+
+Each axis closes with the same question: **which of these are we deliberately
+not covering, and why?** A named waiver is a decision and gets recorded. An
+unmentioned gap is the defect this exists to find.
+
+Post each axis as its own ticket comment, so the reasoning is threaded and the
+human can reply to one part without quoting a wall. The agreed result folds into
+the body and the detail goes in the design doc — see `references/comments.md`
+and the `design-docs` skill.
+
+**Skip the whole interview** when complexity is trivial *and* nothing on
+`models.escalateOn` is touched. Failure modes still get an answer, but "none:
+this changes a static string and has no inputs, no dependencies and no failure
+path" is a complete one. Write the sentence rather than deleting the section, so
+a reviewer can see the question was asked.
+
 ### Classify it
 
 Skip this entirely if the config has no `taxonomy` block — a small project
@@ -328,6 +365,19 @@ change, or branching logic, use `design-sketching` to decide whether a Mermaid
 diagram earns its place — and to draw it if so. Diagrams belong here, once the
 story is settled.
 
+**The detail goes in a design doc, not on the ticket.** The three interview
+axes, the full design and the alternatives considered live in
+`design-docs/features/<area>.md`; the ticket carries a synopsis, the coverage
+tables, and a link. See the `design-docs` skill for the folder convention and
+anchor allocation.
+
+Write the design doc **before** creating the issue, so the ticket can link to
+real anchors rather than ones someone intends to add. A ticket pointing at a
+document that does not exist yet is the first broken link in the folder.
+
+The one thing that stays on the ticket is the **coverage diagram** — it is the
+artifact being signed off, and moving it behind a link defeats the gate.
+
 ### What it logs, and what it must never log
 
 Skip if the config has no `logging` block.
@@ -387,6 +437,24 @@ code, and each phrased as an observable outcome.
 
 "Works correctly" is not a criterion. `Sending {"name":"x"} to PUT leaves
 description empty` is.
+
+**The criteria come from the interview, and failure paths are not optional.**
+Every failure mode and input-domain answer that is in scope becomes a criterion.
+A ticket whose criteria are all happy-path is a ticket that passed the interview
+and then threw the results away — `ticket-refinement` fails it.
+
+State what does **not** happen where that is the point. The negative half is the
+part that gets dropped, and it is usually the half a test can catch:
+
+```
+- [ ] **AC4** a provider timeout surfaces as 503, and the record is NOT written
+```
+
+"Returns 503" passes with a half-written record. The second clause does not.
+
+Where a failure mode was deliberately waived, it does not become a criterion —
+it goes in the failure-mode table as uncovered, with the reason, so the human
+sees it at sign-off rather than discovering the gap later.
 
 ### The TDD test plan — bound to the criteria
 
@@ -482,11 +550,33 @@ the body claims a level the board does not show.
 
 Open the issue and check any Mermaid rendered. It fails silently.
 
-## Then stop again
+## Then stop again — and ask about the tests, not the ticket
 
-**Backlog means written but not approved.** Show the human the ticket URL and
-ask them to review it. Do not create a branch, do not write a test, do not move
-the card to Ready — moving it is their signal that the design is right.
+**Backlog means written but not approved.** Do not create a branch, do not write
+a test, do not move the card to Ready — moving it is the human's signal.
+
+"Have a look at the ticket" gets a ticket skimmed. The thing that needs
+agreement is **the test plan**, because it is the definition of done: a
+behaviour with no test on that list will not be built, and nothing downstream
+will notice. So ask about that, and name every waived mode explicitly rather
+than leaving the gaps to be inferred from a list of what is covered:
+
+> #7 is written: <url>
+>
+> The test plan is comment 4. Before you move it to Ready, read it as the
+> definition of done — if a test is missing there, it will not be written.
+>
+> Three failure modes found, two covered:
+>  ✓ blank name → 422
+>  ✓ provider timeout → 503, no partial write
+>  ✗ concurrent PATCH on the same row — out of scope, pre-existing, no test
+>
+> The design doc is `design-docs/features/records-patch.md` if you want the
+> full analysis. Agree with that scope?
+
+The waived line is the most important one in the message. A human who disagrees
+with it says so now, when it costs a line of the test plan; the alternative is
+finding out at review, or in production.
 
 When they approve:
 
@@ -500,7 +590,12 @@ opening a new one — the ticket number is the thread the whole process hangs on
 ## What this skill will not do
 
 - Draft technical design before the story is agreed.
+- Draft acceptance criteria before the behaviour is interrogated.
 - Move a card to Ready. That is the human's approval.
 - Write acceptance criteria that no test in the plan covers.
+- File a ticket whose criteria are all happy-path without saying so.
+- Inline the full interview on the ticket. Detail goes in the design doc; the
+  ticket carries the decision and the counts.
+- Link to a design-doc anchor that does not exist yet.
 - Write a ticket from a one-line request without interrogating it. That ticket
   is worse than none: it looks like a decision was made when none was.
