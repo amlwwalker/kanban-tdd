@@ -65,11 +65,26 @@ fi
 # the pattern requires a .md path on the line so a prose mention of the word
 # "design:" is not treated as a link.
 #
+# The line must open with a COMMENT MARKER — //, #, --, *, ;, % or <!-- — before
+# `design:`. Without that anchor, every piece of documentation that *describes*
+# the convention matches its own examples, and the gate fails on prose. This
+# script's own header comment was the first false positive.
+#
+# Markdown is excluded outright: a design doc citing a sibling document is prose,
+# not a code link, and the links that matter live in source and test files.
+#
 # xargs rather than "$(cat)" expansion: a large repo overflows ARGV, and the
 # failure mode is a confusing "Argument list too long" rather than a wrong answer.
-tr '\n' '\0' < "$TMP/files" \
-  | xargs -0 grep -nI 'design:[[:space:]]*[^[:space:]]*\.\(md\|markdown\)' -- \
-  > "$TMP/refs" 2>/dev/null || true
+grep -v -E '\.(md|markdown)$' "$TMP/files" > "$TMP/src" || true
+
+if [[ -s "$TMP/src" ]]; then
+  tr '\n' '\0' < "$TMP/src" \
+    | xargs -0 grep -nI -E \
+        '^[[:space:]]*(//+|#+|--|\*|;+|%|<!--)[[:space:]]*design:[[:space:]]*[^[:space:]]+\.(md|markdown)' -- \
+    > "$TMP/refs" 2>/dev/null || true
+else
+  : > "$TMP/refs"
+fi
 
 if [[ ! -s "$TMP/refs" ]]; then
   printf 'No `design:` comments found. Nothing to verify.\n'
