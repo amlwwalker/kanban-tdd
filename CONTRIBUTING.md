@@ -71,6 +71,27 @@ contact with a deadline.
 most load-bearing section: it is what stops a model being helpful in the one way
 that breaks the process.
 
+### Enforce a gate where the work happens, not only upstream
+
+**This is the mistake that has actually escaped.** A ticket was implemented
+straight out of Backlog, skipping the human approval gate entirely, because:
+
+- the Ready gate lived in `ticket-authoring` and `ticket-refinement`, both
+  *upstream* of implementation
+- "implement #1448" matched `red-green`'s triggers much more strongly than
+  `feature-workflow`'s, which were all vague phrasings
+- so the router was bypassed exactly when the request was most specific, and
+  `red-green` never checked the column
+
+A gate enforced only in the skill that *usually* runs first is not a gate — it
+is a convention that holds until someone phrases a request precisely. Ask of
+every rule: **if a user jumps straight to the skill that does the work, does
+anything still stop them?** If not, the check belongs in that skill too.
+
+The same reasoning applies to triggers. A skill that should own an entry point
+needs the *specific* phrasings as well as the vague ones, or the precise request
+routes past it.
+
 **Prose wraps at ~78 columns.** Tables, code blocks and frontmatter do not.
 
 **British spelling**, except where a technical identifier demands otherwise —

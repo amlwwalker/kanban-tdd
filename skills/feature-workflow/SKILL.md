@@ -1,6 +1,6 @@
 ---
 name: feature-workflow
-description: Entry point for any piece of work on a repo that tracks features on a GitHub project board. Use when starting a new feature, resuming one, asking "what's next", or when unsure which phase a piece of work is in. ALSO use whenever someone describes a feature they want, in any form — a user story ("as a user I want..."), a capability, a bug, or a loose idea — because work here starts with a ticket, never with code. Routes to ticket-authoring, red-green, review-handoff or release-to-production. Triggers on "start work on", "new feature", "what should I do next", "pick up", "resume", "where is this up to", "as a user I want", "we need to be able to", "can you add", "I want it to".
+description: Entry point for any piece of work on a repo that tracks features on a GitHub project board. Use when starting a new feature, resuming one, asking "what's next", or when unsure which phase a piece of work is in. ALSO use whenever someone describes a feature they want, in any form — a user story ("as a user I want..."), a capability, a bug, or a loose idea — because work here starts with a ticket, never with code. Routes to ticket-authoring, red-green, review-handoff or release-to-production. ALSO use when someone names a specific ticket to work on — "implement #1448", "do #7", "build #22" — because a ticket number says which work, never which phase it is in, and a card in Backlog has not been approved yet. Triggers on "start work on", "new feature", "what should I do next", "pick up", "resume", "where is this up to", "as a user I want", "we need to be able to", "can you add", "I want it to", "implement #", "build #", "do #", "work on #", "fix #".
 ---
 
 # Feature workflow
@@ -71,6 +71,21 @@ the only checks that are not self-certified.
    `"$CLAUDE_PLUGIN_ROOT/skills/feature-workflow/scripts/ghboard"` if the
    shim is missing, and offer to regenerate it. Do not hunt for the script
    under `~/.claude/plugins` by hand.
+
+   ```bash
+   ls .claude/bin/ghboard 2>/dev/null \
+     || echo "no shim — use \$CLAUDE_PLUGIN_ROOT and offer to rerun /board-setup"
+   ```
+
+   **A missing shim is a gap to report, not to route around.** Reaching for
+   raw `gh` commands because `ghboard` was not on `PATH` hides a broken setup
+   that will cost the next person the same detour — and `ghboard` is not a
+   convenience wrapper: `move` resolves column names to project field option
+   IDs, and `read` returns body *and* comments in order. Hand-rolled `gh` gets
+   both subtly wrong.
+
+   So if the shim is absent: say so, say the repo's setup is incomplete, and
+   offer to rerun `/board-setup`. Use the `$CLAUDE_PLUGIN_ROOT` path meanwhile.
 
 4. **Validate the board** with `ghboard validate`. It lists the live Status
    options and compares them to `project.columns`. If they disagree it stops.
@@ -241,6 +256,36 @@ depends on it:
 ```bash
 git checkout -b dev main && git push -u origin dev
 ```
+
+## Spikes, and stepping outside the process
+
+Sometimes the honest answer is that the workflow does not apply: you are
+exploring to find out what to build, and there are no acceptance criteria to
+work against because nobody knows them yet. That is real work, and forcing a
+ticket around it produces a fiction.
+
+**You may step outside the process. You may not do it quietly.**
+
+Three rules, and the first is the one that gets broken:
+
+**Say it, before you start.** Not afterwards, in a summary.
+
+> This is a spike, not workflow output — there are no criteria to test
+> against, so there is no red→green here and nothing should be merged from it.
+> What it tells us becomes a ticket.
+
+**Nothing from a spike reaches the integration branch.** Throw the code away,
+or raise a ticket and rebuild it properly. A spike that is quietly merged is
+untested code with a story about why that was fine.
+
+**The output is a decision, not a feature.** What a spike produces is "now we
+know X", which becomes the Why of a ticket. If you find yourself polishing
+spike code, it has stopped being a spike and needs a ticket.
+
+Assuming the workflow does not apply, without checking and without saying so,
+is the failure this section exists to prevent. The conclusion may well be
+right; silence is what makes it indistinguishable from skipping the process
+because it was inconvenient.
 
 ## What this skill will not do
 

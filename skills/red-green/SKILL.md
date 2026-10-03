@@ -1,6 +1,6 @@
 ---
 name: red-green
-description: The implementation loop, where the red→green commit pair is the audit trail. Use when implementing a Ready ticket, resuming work on a feature branch, or fixing something a human tester sent back. Owns the evidence — one failing test committed alone, then the implementation that turns it green — and delegates test quality to whichever TDD skill is installed. Triggers on "implement", "start coding", "write the test", "make it pass", "continue the feature", "resume", "red green", "next slice".
+description: The implementation loop, where the red→green commit pair is the audit trail. Use when implementing a ticket that is already in Ready, resuming work on a feature branch, or fixing something a human tester sent back. Checks the card is in Ready before anything else and refuses if it is not — Backlog means nobody approved it. Owns the evidence — one failing test committed alone, then the implementation that turns it green — and delegates test quality to whichever TDD skill is installed. Triggers on "implement", "implement #N", "start coding", "write the test", "make it pass", "continue the feature", "resume", "red green", "next slice".
 ---
 
 # Red → green
@@ -37,6 +37,48 @@ If nothing is installed, the built-in section at the bottom is enough to work
 with, and noticeably thinner.
 
 ## Before the first test
+
+### Refuse unless the card is in Ready
+
+**First action, before reading the ticket and before cutting a branch.**
+
+```bash
+ghboard status <n>          # which column is this in?
+```
+
+It prints the live column name, so compare against `project.columns` in the
+config rather than against the names below — a board may call them something
+else.
+
+| Column | Do |
+|---|---|
+| **Ready** | Continue. |
+| **In progress** | Continue — this is a resume. |
+| **Backlog** | **STOP.** Not approved. |
+| **In review / Done** | **STOP.** Ask what is actually wanted. |
+| *not on the board* | **STOP.** `ghboard status` errors. The ticket exists but was never added, so there is no gate to have passed. Offer `ghboard add`. |
+
+**Backlog means written but not approved**, and Ready is the human's signal
+that the design and the test plan are right. A ticket worked straight out of
+Backlog has had no approval gate at all — so say so and stop:
+
+> #1448 is in Backlog, not Ready. Ready is your approval that the design and
+> the test plan are right, and nothing has been approved on this one yet.
+>
+> I can run `ticket-refinement` to say what is missing, or you can tell me to
+> proceed anyway. I will not start on my own.
+
+Then wait. Offer `ticket-refinement`; do not run it unasked, and do not
+promote the card yourself — **moving a card to Ready is never a machine's
+move.** If the human says go anyway, that is their call: proceed, and note in
+the handoff that the ticket was worked from Backlog without approval, so the
+reviewer knows which gate was skipped.
+
+This check exists because the Ready gate is otherwise enforced only in
+`ticket-authoring` and `ticket-refinement` — both upstream of here. A request
+like "implement #1448" routes straight to this skill and walks past them, so
+the gate has to be enforced where the work actually happens. Every other gate
+in this plugin is.
 
 ### Read the ticket, comments included
 
@@ -245,8 +287,15 @@ Used when `tdd-discipline` resolves to `builtin`. Deliberately thin — install
 
 ## What this skill will not do
 
+- **Start work on a ticket that is not in Ready.** Backlog means nobody has
+  approved it. Stop, say which column it is in, and wait.
+- Move a card to Ready to unblock itself. That is the human's gate, and
+  promoting it here would defeat the only check this skill answers to.
 - Move the card to In review. That is `review-handoff`, and only once
   everything is green.
 - Commit a test it has not watched fail.
 - Write production code in a `test(red):` commit.
 - Bypass the configured test command.
+- Hand-roll `gh` commands that `ghboard` already covers, or hunt for the
+  script by path when the shim is missing — fix the shim and say so.
+- Present a spike as workflow output.
