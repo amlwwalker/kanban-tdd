@@ -143,8 +143,14 @@ change its author does not know you saw.
 The full contract — what to look for at each stage, and how to fold decisions
 back into the body — is `references/comments.md` at the plugin root.
 
-Nothing polls GitHub. A comment sits unread until someone says "I commented on
-#7" or the next `ghboard read`. Say so plainly when you hand a ticket over.
+Nothing polls GitHub by default. A comment sits unread until someone says "I
+commented on #7" or the next `ghboard read`. Say so plainly when you hand a
+ticket over.
+
+The exception is a watch armed by `review-handoff`, which picks up comments and
+column moves on one ticket **for as long as the session lives**. If one is
+running, say so — and say the limit too, because someone who believes a closed
+session is still listening will comment and wait.
 
 ## Finding your way around the board
 

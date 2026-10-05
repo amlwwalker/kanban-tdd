@@ -314,16 +314,48 @@ the anchor:
 https://github.com/<repo>/issues/<n>#user-content-manual-verification-checklist
 ```
 
-Say explicitly how to report a failure, and that nothing polls:
+Say explicitly how to report a failure:
 
 > Checklist is on the ticket: <link>. If a step fails, comment on the issue
-> with the **step number** and what you saw, then tell me. Nothing polls
-> GitHub, so I will not see the comment otherwise.
+> with the **step number** and what you saw.
 
 Asking for the number matters: `verification-failed` quotes the step back
 verbatim to confirm it is looking at the right one, and a mismatch between the
 number reported and the step described is the signal that something was
 misread rather than genuinely broken.
+
+### Offer to watch the ticket
+
+This is the one moment in the workflow where waiting is expected: the checklist
+is out and nothing happens until a human acts on it. So offer, rather than
+leaving them to remember to tell you:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/skills/review-handoff/scripts/watch-ticket.sh" <n>
+```
+
+Run it with the Monitor tool, `persistent: true`. Each new comment and each
+column move arrives as a notification, and the script exits by itself when the
+card reaches Done or comes back to In progress — so the watch ends when the
+thing it was waiting for happens.
+
+**Be exact about the limit, because the failure mode is silent.** The watch
+lives and dies with this session:
+
+> Want me to watch #7? I will pick up comments and column moves while this
+> session is open — but only while it is open. If you close it, nothing is
+> listening, so tell me when you are back and I will catch up.
+
+A user who thinks something is watching when nothing is will comment and wait.
+That is worse than the old "nothing polls GitHub", because it is wrong only
+some of the time.
+
+If they decline, say the old thing plainly: nothing polls GitHub, so comment
+there and then tell me.
+
+When a comment does arrive, read the whole ticket before reacting —
+`ghboard read <n>` — rather than acting on the notification text alone. It is
+truncated, and the comment may be one of several.
 
 ## What this skill will not do
 

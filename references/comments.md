@@ -59,12 +59,40 @@ Then record that you did, so the edit is not silent:
 _Updated after discussion: visibility is per-user, not global (see comments)._
 ```
 
-## Say that nothing polls
+## Say what is and is not watching
 
-Nothing watches GitHub. A comment posted mid-session is invisible until the
-next `ghboard read`. When you hand a ticket to a human, say so plainly:
+By default nothing watches GitHub. A comment posted mid-session is invisible
+until the next `ghboard read`. When you hand a ticket to a human, say so
+plainly:
 
 > The checklist is on the ticket. Nothing polls GitHub, so comment there and
 > then tell me — I will not see it otherwise.
 
 A user who assumes comments are picked up automatically will write one and wait.
+
+**`review-handoff` can arm a watch** on a single ticket — see
+`scripts/watch-ticket.sh`. When one is running, say so, and say the limit in
+the same breath: it lives and dies with the session. A user who believes
+something is listening when it is not will wait longer than if they had been
+told nothing was.
+
+### Why not a webhook
+
+It is the obvious answer and it does not fit a plugin:
+
+- A webhook needs a **public HTTPS endpoint that is up when GitHub fires.** A
+  laptop is not that.
+- Creating one needs **admin** on the repo, which a contributor often does not
+  have.
+- It still needs somewhere to park the event until a session exists to read it.
+  So it moves the problem rather than solving it.
+
+GitHub's **notifications API** is the part worth having: it is fed by the same
+event system webhooks fire from, needs no server, catches up on anything missed,
+and ships an `X-Poll-Interval` header saying how often to ask. `watch-ticket.sh`
+uses it alongside a direct comment poll.
+
+**Column moves are the exception.** Projects v2 has no change feed, and the
+issue timeline does not carry field changes, so a manual card drag fires nothing
+anywhere — not to a webhook either. That one can only be found by comparing the
+board against what you last saw.

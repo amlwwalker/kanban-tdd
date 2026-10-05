@@ -1067,6 +1067,38 @@ it resolves silently.
 
 ---
 
+## Can it watch the board?
+
+Partly, and the limits are worth knowing before you rely on it.
+
+**While a session is open: yes.** `review-handoff` offers to watch the ticket it
+just handed off. New comments and column moves arrive as notifications, and the
+watch ends itself when the card reaches Done or comes back to In progress.
+
+**Between sessions: no.** Close the terminal and nothing is listening. This is
+the bit that matters — a watcher that works only sometimes is worse than none,
+because it invites you to comment and wait. When no watch is armed the rule
+stands: comment on the ticket, then tell Claude.
+
+**Why not webhooks?** They need a public HTTPS endpoint that is up when GitHub
+fires, and admin on the repo to create. Neither fits a plugin running on a
+laptop — and a webhook still needs somewhere to park the event until a session
+exists to read it, so it moves the problem rather than solving it.
+
+What the watcher uses instead is GitHub's **notifications API**, which is fed by
+the same event system webhooks fire from, needs no server, catches up on
+anything missed, and tells you how often to poll. Column moves are the
+exception: Projects v2 has no change feed at all, so a manual card drag is found
+by comparing the board against the last known state.
+
+**For something that notices while you are away**, a scheduled cloud agent can
+sweep the board on a cron — stalled tickets, unanswered questions, cards sitting
+in review — and post a summary. That is a deliberate thing you set up, not
+something this plugin runs on your behalf, and it still cannot reach a session
+you have not started.
+
+---
+
 ## Contributing
 
 **[CONTRIBUTING.md](CONTRIBUTING.md)** — written for whoever picks this up
