@@ -96,9 +96,17 @@ names.
 **One observable outcome per step.** If a step has two assertions, it is two
 steps — otherwise a half-pass has nowhere to go.
 
-**Number them.** A tester reporting a failure says "step 4 failed", and
-`verification-failed` quotes the step back. Unnumbered steps make that
-conversation ambiguous.
+**Every step is a GitHub checkbox with a bold number: `- [ ] **4.** …`**
+
+Not a numbered list, not a bullet. Both halves are load-bearing:
+
+- **`- [ ]`** renders as a tickable box on the card. That is the whole
+  mechanism — the tester ticks where they are reading, and the ticks persist as
+  a record of what was actually checked. A plain list cannot be ticked, so
+  verification leaves no trace.
+- **The number** is how a failure gets reported. A tester says "step 4 failed",
+  and `verification-failed` quotes step 4 back to confirm it is looking at the
+  right one.
 
 **Say where to start.** "Open <dev url>, go to the UPDATE tab." Not "navigate
 to the update panel". If the relevant `environments.*.url` is null in the

@@ -120,7 +120,68 @@ reports tests missing their description, **add the descriptions** — one `//`
 line directly above `func TestX` for Go, a clear `it()` string elsewhere. Do
 not hand a reviewer a table with blanks in it.
 
-## 6. Check the design docs are still true
+## 6. Write the manual checklist onto the ticket — now, before the PR
+
+**Do this before opening the PR, not after it merges.** Once the PR is merged
+the work feels finished, and a step placed after that point is the one that
+gets skipped. The checklist is not paperwork: it is the only instruction the
+person verifying will get.
+
+Use `manual-test-design` for the wording. The **format is not optional**:
+
+```markdown
+## Manual verification checklist
+
+- [ ] **1.** Open <dev url>, go to the Tags tab. The filter bar shows one
+      `admin` button, not two.
+- [ ] **2.** Click `admin`. Both "Renew passport" and "Book dentist" are
+      listed.
+- [ ] **3.** Add a todo with the tag ` Admin ` (with spaces). It appears
+      under the same `admin` filter, not a new one.
+```
+
+**`- [ ]` is required. A numbered list is wrong.** GitHub renders these as
+tickable boxes on the card, and that is the whole mechanism: the tester ticks
+them where they are looking, and the ticks persist. A plain list cannot be
+ticked, so verification leaves no trace and nobody can tell which steps were
+actually done.
+
+The bold number is required too — `verification-failed` quotes the number back
+verbatim to confirm it is looking at the right step.
+
+Then write it:
+
+```bash
+gh issue edit <issue> --body-file <path-with-checklist-appended>
+```
+
+It goes on the **issue**, not only the PR, because the issue is the board card
+— the person verifying is looking at the card, and checkboxes there survive the
+PR being merged and forgotten.
+
+**Verify it landed.** An edit that silently did nothing looks identical to one
+that worked:
+
+```bash
+gh issue view <issue> --json body -q .body | grep -c '^- \[ \]'
+```
+
+Zero means the checklist is not on the ticket. Do not continue — fix it, and do
+not report the handoff as done.
+
+If the relevant `environments.*.url` is null, say the URL is unknown rather
+than writing "open dev" and leaving the reader to guess.
+
+If this ticket came back from a failed verification, also:
+
+```bash
+gh issue edit <issue> --remove-label verification-failed
+```
+
+and comment saying what changed and which test now covers it, so the tester
+knows what to re-check rather than re-running the whole checklist blind.
+
+## 7. Check the design docs are still true
 
 Two checks. The first is mechanical, the second needs judgement.
 
@@ -163,7 +224,7 @@ in the green commit, and arriving here with a stale doc means that was missed.
 Fix it now rather than filing it: a known-wrong document is worse than none,
 because people trust it once and then stop trusting the folder.
 
-## 7. Capture the browser evidence
+## 8. Capture the browser evidence
 
 **Skip entirely when the config has no `browser` block.** Nothing here depends
 on it.
@@ -192,13 +253,13 @@ Publishing needs a human to confirm the images render — `curl` cannot check it
 a private repo, where a working and a broken image both return 404. Carry that
 ask into step 12 rather than claiming the evidence is in place.
 
-## 8. Optional: review the branch first
+## 9. Optional: review the branch first
 
 If `code-review` resolves to a provider, run it before opening the PR. Findings
 are cheaper to act on before a reviewer reads the diff. Resolve per
 `references/capabilities.md`.
 
-## 9. Open the PR to the integration branch
+## 10. Open the PR to the integration branch
 
 ```bash
 gh pr create --base <integration> --head "$(git branch --show-current)" \
@@ -245,7 +306,7 @@ reviewer cannot miss it.
 Add a Mermaid diagram only if the implementation diverged from the ticket's —
 otherwise link the ticket.
 
-## 10. Wait for CI, then merge
+## 11. Wait for CI, then merge
 
 ```bash
 gh pr checks --watch
@@ -258,32 +319,12 @@ together *before* the PR exists.
 
 If CI fails, fix it on the branch. Do not move the card.
 
-## 11. Append the manual checklist to the ticket
+## 12. Move the card — and read it back
 
-Use `manual-test-design` to write the steps, **numbered**, each tied to an
-acceptance criterion. Then:
-
-```bash
-gh issue edit <issue> --body-file <path-with-checklist-appended>
-```
-
-It goes on the **issue**, not only the PR, because the issue is the board card
-— the person verifying is looking at the card, and checkboxes there survive the
-PR being merged and forgotten.
-
-If the relevant `environments.*.url` is null, say the URL is unknown rather
-than writing "open dev" and leaving the reader to guess.
-
-If this ticket came back from a failed verification, also:
-
-```bash
-gh issue edit <issue> --remove-label verification-failed
-```
-
-and comment saying what changed and which test now covers it, so the tester
-knows what to re-check rather than re-running the whole checklist blind.
-
-## 12. Now move the card
+**This is a required action, not a decision to weigh.** The card must end this
+skill in the review column. A handoff that leaves it in In progress is a
+handoff nobody knows about: the board is how work is found, and a card that did
+not move is work that silently stalled.
 
 Which column depends on the flow the config describes:
 
@@ -295,6 +336,17 @@ ghboard move <issue> pushedToDev     # PR-per-environment flow
 Use `pushedToDev` when it is configured, `inReview` otherwise. On the
 PR-per-environment flow this card is **not** finished review — it has reached
 the first environment, and `release-to-production` carries it onward.
+
+**Then confirm it actually moved:**
+
+```bash
+ghboard status <issue>
+```
+
+If it does not report the column you just set, the move failed — say so and fix
+it. Do not report the handoff as complete on the strength of having run the
+command; `ghboard move` can fail on a column name the board does not have, and
+the failure is easy to read past.
 
 Last, deliberately. The card now says something true: it is on the integration
 branch and can be tried.
@@ -325,13 +377,33 @@ verbatim to confirm it is looking at the right one, and a mismatch between the
 number reported and the step described is the signal that something was
 misread rather than genuinely broken.
 
+## What this skill must do before it reports success
+
+Three outcomes, every time. Prohibitions alone are not enough: a skill told
+only what *not* to do will stop short and still feel finished.
+
+- [ ] **The checklist is on the issue, as `- [ ]` checkboxes.** Confirmed by
+      reading the body back, not by having run `gh issue edit`.
+- [ ] **The card is in the review column.** Confirmed with `ghboard status`,
+      not by having run `ghboard move`.
+- [ ] **The human has been told where the checklist is and how to report a
+      failure.**
+
+If any of the three is not true, the handoff is not done. Say which one is
+outstanding rather than reporting completion — a card left in In progress is
+work nobody knows is waiting, and a checklist that never landed means the
+verifier has no instructions at all.
+
 ## What this skill will not do
 
 - Move the card to Done. That is the human's verification, and it is what
   authorises a release.
 - Merge with CI red or any suite failing.
 - Write manual steps for a UI it has not seen running.
+- Write the checklist as a plain numbered list. `- [ ]` is the mechanism: a
+  list cannot be ticked, so verification leaves no trace on the card.
 - Claim red→green evidence exists without checking the log.
+- Claim the card moved, or the checklist landed, without reading either back.
 - Open a PR with a dangling `design:` link.
 - Leave a design doc contradicting the branch it describes, or resolve the
   question silently instead of putting it in the handoff.

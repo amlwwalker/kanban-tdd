@@ -71,6 +71,47 @@ contact with a deadline.
 most load-bearing section: it is what stops a model being helpful in the one way
 that breaks the process.
 
+### Say what must happen, not only what must not
+
+Every skill here ends with "what this skill will not do". That list is
+load-bearing, but **a skill given only prohibitions will stop short and still
+feel finished.**
+
+This escaped twice in one handoff: the manual checklist was never written and
+the card was never moved. Both steps existed. Both were phrased descriptively —
+"use `manual-test-design` to write the steps", "which column depends on the
+flow" — so they read as documentation of an option rather than an instruction.
+Meanwhile the refusal list said only what not to do, and the one hard rule
+about the card was *don't* move it to Done.
+
+Two fixes, both worth copying:
+
+- **A required-outcomes list** alongside the refusals, phrased as checkboxes the
+  skill must satisfy before reporting success.
+- **Read the result back.** `gh issue edit` and `ghboard move` both succeed
+  quietly when they do nothing useful, so the step is not "run the command", it
+  is "run it, then confirm the state changed".
+
+### Put a skippable step before the moment the work feels done
+
+The checklist step sat at position 11 of 13, *after* the PR had opened and
+merged. By then the work feels finished and anything remaining reads as
+paperwork. Moving it before the PR fixed it without adding any enforcement.
+
+Ask where a step sits relative to the emotional end of the task, not just
+whether its ordering is logically correct.
+
+### A format that matters must be stated where it is used
+
+The checklist must be `- [ ]` checkboxes, because a tester ticks them on the
+card and the ticks are the record. That format lived only in a "Good / Bad"
+example inside `manual-test-design`, framed as advice about wording — while
+`review-handoff`, the skill that actually writes the checklist, said only
+"numbered". A numbered list satisfied the letter of the instruction exactly.
+
+If a format is required, put the literal template in the skill that produces
+it, and say what breaks without it.
+
 ### Enforce a gate where the work happens, not only upstream
 
 **This is the mistake that has actually escaped.** A ticket was implemented
